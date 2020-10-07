@@ -60,7 +60,7 @@ return_stmt ::= "return" ";"
 # operators in order of increasing precedence
 
 expr ::= IDENT "=" expr
-       | rval
+       | disj
 
 disj ::= conj "||" conj
        | conj  
