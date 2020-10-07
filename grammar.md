@@ -58,19 +58,39 @@ return_stmt ::= "return" ";"
               | "return" expr ";"
 
 # operators in order of increasing precedence
+
 expr ::= IDENT "=" expr
        | rval
 
-rval ::= rval "||" rval
-       | rval "&&" rval
-       | rval "==" rval | rval "!=" rval
-       | rval "<=" rval | rval "<" rval | rval ">=" rval | rval ">" rval
-       | rval "+" rval | rval "-" rval
-       | rval "*" rval | rval "/" rval | rval "%" rval
-       | - rval | ! rval
-       | "(" expr ")"
-       | IDENT | IDENT "(" args ")"
-       | INT_LIT | FLOAT_LIT | BOOL_LIT
+disj ::= conj "||" conj
+       | conj  
+
+conj ::= equal "&&" equal
+       | equal
+
+equal ::= order "==" order 
+        | order "!=" order
+        | order
+
+order ::= term "<=" term 
+        | term "<" term 
+        | term ">=" term 
+        | term ">" term
+        | term
+
+term ::= factor "+" factor 
+       | factor "-" factor
+       | factor
+
+factor ::= literal "*" literal 
+         | literal "/" literal 
+         | literal "%" literal
+         | literal
+
+literal ::= - literal | ! literal
+          | "(" expr ")"
+          | IDENT | IDENT "(" args ")"
+          | INT_LIT | FLOAT_LIT | BOOL_LIT
 
 args ::= arg_list
        | epsilon
