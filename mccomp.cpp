@@ -397,6 +397,20 @@ public:
   virtual std::string to_string() const {};
 };
 
+/// VariableASTnode - Class for variable identifier references like sum, user_name
+class VariableASTnode : public ASTnode {
+  std::string Val;
+  TOKEN Tok;
+  std::string Name;
+
+public:
+  VariableASTnode(TOKEN tok, std::string val) : Val(val), Tok(tok) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return Val;
+  };
+};
+
 /// IntASTnode - Class for integer literals like 1, 2, 10,
 class IntASTnode : public ASTnode {
   int Val;
@@ -406,12 +420,26 @@ class IntASTnode : public ASTnode {
 public:
   IntASTnode(TOKEN tok, int val) : Val(val), Tok(tok) {}
   virtual Value *codegen() override;
-  // virtual std::string to_string() const override {
-  // return a sting representation of this AST node
-  //};
+  virtual std::string to_string() const override {
+    return val;
+  };
 };
 
-/* add other AST nodes as nessasary */
+/// BoolASTnode - Class for boolean literals true, false
+class BoolASTnode : public ASTnode {
+  bool Val;
+  TOKEN Tok;
+  std::string Name;
+
+public:
+  BoolASTnode(TOKEN tok, bool val) : Val(val), Tok(tok) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return Val ? 'true' : 'false';
+  };
+};
+
+/* TODO: add other AST nodes as nessasary */
 
 //===----------------------------------------------------------------------===//
 // Recursive Descent Parser - Function call for each production
@@ -422,6 +450,18 @@ public:
 // program ::= extern_list decl_list
 static void parser() {
   // add body
+}
+
+static std::unique_ptr<VariableASTnode> parseVariable() {
+  //
+}
+
+static std::unique_ptr<IntASTnode> parseInt() {
+  //
+}
+
+static std::unique_ptr<BoolASTnode> parseBool() {
+  //
 }
 
 //===----------------------------------------------------------------------===//
@@ -435,7 +475,7 @@ static std::unique_ptr<Module> TheModule;
 //===----------------------------------------------------------------------===//
 // AST Printer
 //===----------------------------------------------------------------------===//
-
+virtual
 inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
                                      const ASTnode &ast) {
   os << ast.to_string();
