@@ -1,3 +1,10 @@
+# VS code 
+.vscode
+
+# Output
+mccomp
+output.ll
+
 # Prerequisites
 *.d
 
