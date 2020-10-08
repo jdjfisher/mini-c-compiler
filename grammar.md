@@ -17,12 +17,15 @@ var_decl ::= var_type IDENT ";"
 type_spec ::= "void"
             | var_type
 
-var_type ::= "int" | "float" | "bool"
+var_type ::= "int" 
+           | "float" 
+           | "bool"
 
 fun_decl ::= type_spec IDENT "(" params ")" block
 
 params ::= param_list
-         | "void" | epsilon
+         | "void" 
+         | epsilon
 
 param_list ::= param_list "," param
              | param
@@ -62,32 +65,39 @@ return_stmt ::= "return" ";"
 expr ::= IDENT "=" expr
        | disj
 
-disj ::= conj "||" conj
-       | conj  
+disj  ::= conj _disj 
+_disj ::= "||" conj _disj
+        | epsilon  
 
-conj ::= equal "&&" equal
-       | equal
+conj  ::= equal "&&" _conj
+_conj ::= "&&" equal _conj
+        | epsilon
 
-equal ::= order "==" order 
-        | order "!=" order
-        | order
+equal  ::= order _equal
+_equal ::= "==" order _equal
+         | "!=" order _equal
+         | epsilon
 
-order ::= term "<=" term 
-        | term "<" term 
-        | term ">=" term 
-        | term ">" term
-        | term
+order  ::= term _order
+_order ::= "<=" term _order 
+         | "<" term _order 
+         | ">=" term _order 
+         | ">" term _order
+         | epsilon
 
-term ::= factor "+" factor 
-       | factor "-" factor
-       | factor
+term  ::= factor _term
+_term ::= "+" factor _term 
+        | "-" factor _term
+        | epsilon
 
-factor ::= literal "*" literal 
-         | literal "/" literal 
-         | literal "%" literal
-         | literal
+factor  ::= literal _factor
+_factor ::= "*" literal _factor 
+          | "/" literal _factor 
+          | "%" literal _factor
+          | epsilon
 
-literal ::= - literal | ! literal
+literal ::= - literal 
+          | ! literal
           | "(" expr ")"
           | IDENT | IDENT "(" args ")"
           | INT_LIT | FLOAT_LIT | BOOL_LIT
