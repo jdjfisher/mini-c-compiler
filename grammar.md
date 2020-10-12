@@ -4,6 +4,7 @@ program ::= extern_list decl_list
 
 extern_list ::= extern_list extern
               | extern
+              
 extern ::= "extern" type_spec IDENT "(" params ")" ";"
 
 decl_list ::= decl_list decl
