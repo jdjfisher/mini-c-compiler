@@ -394,50 +394,107 @@ class ASTnode {
 public:
   virtual ~ASTnode() {}
   virtual Value *codegen() = 0;
-  virtual std::string to_string() const {};
+  virtual std::string to_string() const;
 };
 
 /// VariableASTnode - Class for variable identifier references like sum, user_name
 class VariableASTnode : public ASTnode {
-  std::string Val;
-  TOKEN Tok;
-  std::string Name;
+  std::string val;
+  TOKEN tok;
 
 public:
-  VariableASTnode(TOKEN tok, std::string val) : Val(val), Tok(tok) {}
-  virtual Value *codegen() override;
-  virtual std::string to_string() const override {
-    return Val;
-  };
-};
-
-/// IntASTnode - Class for integer literals like 1, 2, 10,
-class IntASTnode : public ASTnode {
-  int Val;
-  TOKEN Tok;
-  std::string Name;
-
-public:
-  IntASTnode(TOKEN tok, int val) : Val(val), Tok(tok) {}
+  VariableASTnode(TOKEN tok, std::string val) : val(val), tok(tok) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
     return val;
   };
 };
 
-/// BoolASTnode - Class for boolean literals true, false
-class BoolASTnode : public ASTnode {
-  bool Val;
-  TOKEN Tok;
-  std::string Name;
+/// IntASTnode - Class for integer literals like 1, 2, 10,
+class IntASTnode : public ASTnode {
+  int val;
+  TOKEN tok;
 
 public:
-  BoolASTnode(TOKEN tok, bool val) : Val(val), Tok(tok) {}
+  IntASTnode(TOKEN tok, int val) : val(val), tok(tok) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
-    return Val ? 'true' : 'false';
+    return std::to_string(val);
   };
 };
+
+/// BoolASTnode - Class for boolean literals true, false
+class BoolASTnode : public ASTnode {
+  bool val;
+  TOKEN tok;
+
+public:
+  BoolASTnode(TOKEN tok, bool val) : val(val), tok(tok) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return val ? "true" : "false";
+  };
+};
+
+/// DeclASTnode - Class for ...
+class DeclASTnode : public ASTnode {
+
+public:
+  DeclASTnode() {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "DeclASTnode";
+  };
+};
+
+/// DeclListASTnode - Class for ...
+class DeclListASTnode : public ASTnode {
+
+public:
+  DeclListASTnode() {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "DeclListASTnode";
+  };
+};
+
+/// ExternASTnode - Class for ...
+class ExternASTnode : public ASTnode {
+
+public:
+  ExternASTnode() {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+      return "ExternASTnode";
+  };
+};
+
+/// ExternListASTnode - Class for ...
+class ExternListASTnode : public ASTnode {
+
+public:
+  ExternListASTnode() {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+      return "ExternListASTnode";
+  };
+};
+
+// ProgramASTnode - Class for ...
+class ProgramASTnode : public ASTnode {
+  std::unique_ptr<ExternListASTnode> e_l;
+  std::unique_ptr<DeclListASTnode> d_l;
+
+public:
+  ProgramASTnode(std::unique_ptr<ExternListASTnode> e_l, 
+                 std::unique_ptr<DeclListASTnode> d_l) 
+    : e_l(std::move(e_l)), d_l(std::move(d_l)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "ProgramASTnode";
+  };
+};
+
 
 /* TODO: add other AST nodes as nessasary */
 
@@ -445,11 +502,8 @@ public:
 // Recursive Descent Parser - Function call for each production
 //===----------------------------------------------------------------------===//
 
-/* Add function calls for each production */
-
-// program ::= extern_list decl_list
-static void parser() {
-  // add body
+static std::unique_ptr<ASTnode> parseLiteral() {
+  //
 }
 
 static std::unique_ptr<VariableASTnode> parseVariable() {
@@ -464,6 +518,14 @@ static std::unique_ptr<BoolASTnode> parseBool() {
   //
 }
 
+static std::unique_ptr<ProgramASTnode> parseProgram() {
+  //
+}
+
+static void parse() {
+  parseProgram();
+}
+
 //===----------------------------------------------------------------------===//
 // Code Generation
 //===----------------------------------------------------------------------===//
@@ -475,7 +537,7 @@ static std::unique_ptr<Module> TheModule;
 //===----------------------------------------------------------------------===//
 // AST Printer
 //===----------------------------------------------------------------------===//
-virtual
+
 inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
                                      const ASTnode &ast) {
   os << ast.to_string();
@@ -513,7 +575,7 @@ int main(int argc, char **argv) {
   TheModule = std::make_unique<Module>("mini-c", TheContext);
 
   // Run the parser now.
-  parser();
+  parse();
   fprintf(stderr, "Parsing Finished\n");
 
   //********************* Start printing final IR **************************
