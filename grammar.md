@@ -104,6 +104,6 @@ literal ::= - literal
 args ::= arg_list
        | epsilon
 
-arg_list ::= arg_list "," expr
+arg_list ::= expr "," arg_list
            | expr
 ```
