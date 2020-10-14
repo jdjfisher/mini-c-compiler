@@ -436,11 +436,173 @@ public:
   };
 };
 
-/// DeclNode - Class for ...
-class DeclNode : public Node {
+/// VarTypeNode - Class for ...
+class VarTypeNode : public Node {
+  std::string type;
 
 public:
-  DeclNode() {}
+  VarTypeNode(std::string type) : type(type) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "VarTypeNode";
+  };
+};
+
+/// FunTypeNode - Class for ...
+class FunTypeNode : public Node {
+  std::unique_ptr<VarTypeNode> vt;
+
+public:
+  FunTypeNode(std::unique_ptr<VarTypeNode> vt = nullptr) : vt(std::move(vt)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "FunTypeNode";
+  };
+};
+
+/// VarDeclNode - Class for ...
+class VarDeclNode : public Node {
+  std::unique_ptr<VarTypeNode> vt;
+  TOKEN id;
+
+public:
+  VarDeclNode(std::unique_ptr<VarTypeNode> vt, TOKEN id) : vt(std::move(vt)), id(id) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "VarDeclNode";
+  };
+};
+
+/// LocalDeclsNode - Class for ...
+class LocalDeclsNode : public Node {
+  std::unique_ptr<VarDeclNode> vd;
+  std::unique_ptr<LocalDeclsNode> lds;
+
+public:
+  LocalDeclsNode() {}
+  LocalDeclsNode(std::unique_ptr<VarDeclNode> vd,
+                 std::unique_ptr<LocalDeclsNode> lds
+  ) : vd(std::move(vd)), lds(std::move(lds)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "LocalDeclsNode";
+  };
+};
+
+/// StmtNode - Class for ...
+class StmtNode : public Node {
+  // TODO: ...
+
+public:
+  StmtNode() {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "StmtNode";
+  };
+};
+
+/// StmtListNode - Class for ...
+class StmtListNode : public Node {
+  std::unique_ptr<StmtNode> s;
+  std::unique_ptr<StmtListNode> sl;
+
+public:
+  StmtListNode() {}
+  StmtListNode(std::unique_ptr<StmtNode> s,
+                std::unique_ptr<StmtListNode> sl = nullptr
+  ) : s(std::move(s)), sl(std::move(sl)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "StmtListNode";
+  };
+};
+
+/// BlockNode - Class for ...
+class BlockNode : public Node {
+  std::unique_ptr<LocalDeclsNode> lds;
+  std::unique_ptr<StmtListNode> sl;
+
+public:
+  BlockNode(std::unique_ptr<LocalDeclsNode> lds,
+            std::unique_ptr<StmtListNode> sl
+  ) : lds(std::move(lds)), sl(std::move(sl)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "BlockNode";
+  };
+};
+
+/// ParamNode - Class for ...
+class ParamNode : public Node {
+  std::unique_ptr<VarTypeNode> vt;
+  TOKEN id;
+
+public:
+  ParamNode(std::unique_ptr<VarTypeNode> vt, 
+            TOKEN id
+  ) : vt(std::move(vt)), id(id)
+  {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "ParamNode";
+  };
+};
+
+/// ParamListNode - Class for ...
+class ParamListNode : public Node {
+  std::unique_ptr<ParamNode> p;
+  std::unique_ptr<ParamListNode> pl;
+
+public:
+  ParamListNode(std::unique_ptr<ParamNode> p,
+                std::unique_ptr<ParamListNode> pl = nullptr
+  ) : p(std::move(p)), pl(std::move(pl)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "ParamListNode";
+  };
+};
+
+/// ParamsNode - Class for ...
+class ParamsNode : public Node {
+  std::unique_ptr<ParamListNode> pl;
+
+public:
+  ParamsNode(std::unique_ptr<ParamListNode> pl) : pl(std::move(pl)) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "ParamsNode";
+  };
+};
+
+/// FunDeclNode - Class for ...
+class FunDeclNode : public Node {
+  std::unique_ptr<FunTypeNode> ft;
+  std::unique_ptr<ParamsNode> p;
+  std::unique_ptr<BlockNode> b;
+  TOKEN id;
+
+public:
+  FunDeclNode(std::unique_ptr<FunTypeNode> ft, 
+              std::unique_ptr<ParamsNode> p, 
+              std::unique_ptr<BlockNode> b, 
+              TOKEN id
+  ) : ft(std::move(ft)), p(std::move(p)), b(std::move(b)), id(id) {}
+  virtual Value *codegen() override;
+  virtual std::string to_string() const override {
+    return "FunDeclNode";
+  };
+};
+
+/// DeclNode - Class for ...
+class DeclNode : public Node {
+  std::unique_ptr<VarDeclNode> vd;
+  std::unique_ptr<FunDeclNode> fd;
+
+public:
+  DeclNode(std::unique_ptr<VarDeclNode> vd, 
+           std::unique_ptr<FunDeclNode> fd
+  ) : vd(std::move(vd)), fd(std::move(fd)) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
     return "DeclNode";
@@ -460,9 +622,15 @@ public:
 
 /// ExternNode - Class for ...
 class ExternNode : public Node {
+  std::unique_ptr<FunTypeNode> ft;
+  std::unique_ptr<ParamsNode> p;
+  TOKEN id;
 
 public:
-  ExternNode() {}
+  ExternNode(std::unique_ptr<FunTypeNode> ft, 
+             std::unique_ptr<ParamsNode> p,
+             TOKEN id
+  ) : ft(std::move(ft)), p(std::move(p)), id(id) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
       return "ExternNode";
@@ -471,9 +639,13 @@ public:
 
 /// ExternListNode - Class for ...
 class ExternListNode : public Node {
+  std::unique_ptr<ExternNode> e;
+  std::unique_ptr<ExternListNode> el;
 
 public:
-  ExternListNode() {}
+  ExternListNode(std::unique_ptr<ExternNode> e, 
+                 std::unique_ptr<ExternListNode> el = nullptr
+  ) : e(std::move(e)), el(std::move(el)) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
       return "ExternListNode";
@@ -482,13 +654,13 @@ public:
 
 // ProgramNode - Class for ...
 class ProgramNode : public Node {
-  std::unique_ptr<ExternListNode> e_l;
-  std::unique_ptr<DeclListNode> d_l;
+  std::unique_ptr<DeclListNode> dl;
+  std::unique_ptr<ExternListNode> el;
 
 public:
-  ProgramNode(std::unique_ptr<ExternListNode> e_l, 
-                 std::unique_ptr<DeclListNode> d_l) 
-    : e_l(std::move(e_l)), d_l(std::move(d_l)) {}
+  ProgramNode(std::unique_ptr<DeclListNode> dl,
+              std::unique_ptr<ExternListNode> el = nullptr
+  ) : dl(std::move(dl)), el(std::move(el)) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
     return "ProgramNode";
