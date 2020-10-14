@@ -2,16 +2,16 @@
 program ::= extern_list decl_list
           | decl_list
 
-extern_list ::= extern_list extern
+extern_list ::= extern extern_list
               | extern
               
 extern ::= "extern" type_spec IDENT "(" params ")" ";"
 
-decl_list ::= decl_list decl
+decl_list ::= decl decl_list
             | decl
 
 decl ::= var_decl
-        | fun_decl
+       | fun_decl
 
 var_decl ::= var_type IDENT ";"
 
@@ -28,18 +28,18 @@ params ::= param_list
          | "void" 
          | epsilon
 
-param_list ::= param_list "," param
+param_list ::= param "," param_list
              | param
 
 param ::= var_type IDENT
 block ::= "{" local_decls stmt_list "}"
 
-local_decls ::= local_decls local_decl
+local_decls ::= local_decl local_decls
               | epsilon
 
 local_decl ::= var_type IDENT ";"
 
-stmt_list ::= stmt_list stmt
+stmt_list ::= stmt stmt_list
             | epsilon
 
 stmt ::= expr_stmt
@@ -60,8 +60,6 @@ else_stmt ::= "else" block
 
 return_stmt ::= "return" ";"
               | "return" expr ";"
-
-# operators in order of increasing precedence
 
 expr ::= IDENT "=" expr
        | disj
