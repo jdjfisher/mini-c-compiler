@@ -5,7 +5,7 @@ program ::= extern_list decl_list
 extern_list ::= extern extern_list
               | extern
               
-extern ::= "extern" type_spec IDENT "(" params ")" ";"
+extern ::= "extern" fun_type IDENT "(" params ")" ";"
 
 decl_list ::= decl decl_list
             | decl
@@ -15,14 +15,14 @@ decl ::= var_decl
 
 var_decl ::= var_type IDENT ";"
 
-type_spec ::= "void"
+fun_type ::= "void"
             | var_type
 
 var_type ::= "int" 
            | "float" 
            | "bool"
 
-fun_decl ::= type_spec IDENT "(" params ")" block
+fun_decl ::= fun_type IDENT "(" params ")" block
 
 params ::= param_list
          | "void" 
