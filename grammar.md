@@ -95,8 +95,8 @@ _factor ::= "*" literal _factor
           | "%" literal _factor
           | epsilon
 
-literal ::= - literal 
-          | ! literal
+literal ::= "-" literal 
+          | "!" literal
           | "(" expr ")"
           | IDENT | IDENT "(" args ")"
           | INT_LIT | FLOAT_LIT | BOOL_LIT
