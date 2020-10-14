@@ -389,109 +389,109 @@ static void putBackToken(TOKEN tok) { tok_buffer.push_front(tok); }
 // AST nodes
 //===----------------------------------------------------------------------===//
 
-/// ASTnode - Base class for all AST nodes.
-class ASTnode {
+/// Node - Base class for all AST nodes.
+class Node {
 public:
-  virtual ~ASTnode() {}
+  virtual ~Node() {}
   virtual Value *codegen() = 0;
   virtual std::string to_string() const;
 };
 
-/// VariableASTnode - Class for variable identifier references like sum, user_name
-class VariableASTnode : public ASTnode {
+/// VariableNode - Class for variable identifier references like sum, user_name
+class VariableNode : public Node {
   std::string val;
   TOKEN tok;
 
 public:
-  VariableASTnode(TOKEN tok, std::string val) : val(val), tok(tok) {}
+  VariableNode(TOKEN tok, std::string val) : val(val), tok(tok) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
     return val;
   };
 };
 
-/// IntASTnode - Class for integer literals like 1, 2, 10,
-class IntASTnode : public ASTnode {
+/// IntNode - Class for integer literals like 1, 2, 10,
+class IntNode : public Node {
   int val;
   TOKEN tok;
 
 public:
-  IntASTnode(TOKEN tok, int val) : val(val), tok(tok) {}
+  IntNode(TOKEN tok, int val) : val(val), tok(tok) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
     return std::to_string(val);
   };
 };
 
-/// BoolASTnode - Class for boolean literals true, false
-class BoolASTnode : public ASTnode {
+/// BoolNode - Class for boolean literals true, false
+class BoolNode : public Node {
   bool val;
   TOKEN tok;
 
 public:
-  BoolASTnode(TOKEN tok, bool val) : val(val), tok(tok) {}
+  BoolNode(TOKEN tok, bool val) : val(val), tok(tok) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
     return val ? "true" : "false";
   };
 };
 
-/// DeclASTnode - Class for ...
-class DeclASTnode : public ASTnode {
+/// DeclNode - Class for ...
+class DeclNode : public Node {
 
 public:
-  DeclASTnode() {}
+  DeclNode() {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
-    return "DeclASTnode";
+    return "DeclNode";
   };
 };
 
-/// DeclListASTnode - Class for ...
-class DeclListASTnode : public ASTnode {
+/// DeclListNode - Class for ...
+class DeclListNode : public Node {
 
 public:
-  DeclListASTnode() {}
+  DeclListNode() {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
-    return "DeclListASTnode";
+    return "DeclListNode";
   };
 };
 
-/// ExternASTnode - Class for ...
-class ExternASTnode : public ASTnode {
+/// ExternNode - Class for ...
+class ExternNode : public Node {
 
 public:
-  ExternASTnode() {}
+  ExternNode() {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
-      return "ExternASTnode";
+      return "ExternNode";
   };
 };
 
-/// ExternListASTnode - Class for ...
-class ExternListASTnode : public ASTnode {
+/// ExternListNode - Class for ...
+class ExternListNode : public Node {
 
 public:
-  ExternListASTnode() {}
+  ExternListNode() {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
-      return "ExternListASTnode";
+      return "ExternListNode";
   };
 };
 
-// ProgramASTnode - Class for ...
-class ProgramASTnode : public ASTnode {
-  std::unique_ptr<ExternListASTnode> e_l;
-  std::unique_ptr<DeclListASTnode> d_l;
+// ProgramNode - Class for ...
+class ProgramNode : public Node {
+  std::unique_ptr<ExternListNode> e_l;
+  std::unique_ptr<DeclListNode> d_l;
 
 public:
-  ProgramASTnode(std::unique_ptr<ExternListASTnode> e_l, 
-                 std::unique_ptr<DeclListASTnode> d_l) 
+  ProgramNode(std::unique_ptr<ExternListNode> e_l, 
+                 std::unique_ptr<DeclListNode> d_l) 
     : e_l(std::move(e_l)), d_l(std::move(d_l)) {}
   virtual Value *codegen() override;
   virtual std::string to_string() const override {
-    return "ProgramASTnode";
+    return "ProgramNode";
   };
 };
 
@@ -502,23 +502,23 @@ public:
 // Recursive Descent Parser - Function call for each production
 //===----------------------------------------------------------------------===//
 
-static std::unique_ptr<ASTnode> parseLiteral() {
+static std::unique_ptr<Node> parseLiteral() {
   //
 }
 
-static std::unique_ptr<VariableASTnode> parseVariable() {
+static std::unique_ptr<VariableNode> parseVariable() {
   //
 }
 
-static std::unique_ptr<IntASTnode> parseInt() {
+static std::unique_ptr<IntNode> parseInt() {
   //
 }
 
-static std::unique_ptr<BoolASTnode> parseBool() {
+static std::unique_ptr<BoolNode> parseBool() {
   //
 }
 
-static std::unique_ptr<ProgramASTnode> parseProgram() {
+static std::unique_ptr<ProgramNode> parseProgram() {
   //
 }
 
@@ -539,7 +539,7 @@ static std::unique_ptr<Module> TheModule;
 //===----------------------------------------------------------------------===//
 
 inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
-                                     const ASTnode &ast) {
+                                     const Node &ast) {
   os << ast.to_string();
   return os;
 }
