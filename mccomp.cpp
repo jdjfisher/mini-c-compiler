@@ -372,18 +372,21 @@ static TOKEN gettok() {
 static TOKEN CurTok;
 static std::deque<TOKEN> tok_buffer;
 
-static TOKEN getNextToken() {
-
+static TOKEN getNextToken() 
+{
   if (tok_buffer.size() == 0)
     tok_buffer.push_back(gettok());
 
-  TOKEN temp = tok_buffer.front();
+  CurTok = tok_buffer.front();
   tok_buffer.pop_front();
 
-  return CurTok = temp;
+  return CurTok;
 }
 
-static void putBackToken(TOKEN tok) { tok_buffer.push_front(tok); }
+static void putBackToken(TOKEN tok) 
+{ 
+  tok_buffer.push_front(tok); 
+}
 
 //===----------------------------------------------------------------------===//
 // AST nodes
@@ -404,7 +407,9 @@ class VariableNode : public Node {
 
 public:
   VariableNode(TOKEN tok, std::string val) : val(val), tok(tok) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return val;
   };
@@ -417,7 +422,9 @@ class IntNode : public Node {
 
 public:
   IntNode(TOKEN tok, int val) : val(val), tok(tok) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return std::to_string(val);
   };
@@ -430,7 +437,9 @@ class BoolNode : public Node {
 
 public:
   BoolNode(TOKEN tok, bool val) : val(val), tok(tok) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return val ? "true" : "false";
   };
@@ -442,7 +451,9 @@ class VarTypeNode : public Node {
 
 public:
   VarTypeNode(std::string type) : type(type) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "VarTypeNode";
   };
@@ -454,7 +465,9 @@ class FunTypeNode : public Node {
 
 public:
   FunTypeNode(std::unique_ptr<VarTypeNode> vt = nullptr) : vt(std::move(vt)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "FunTypeNode";
   };
@@ -467,7 +480,9 @@ class VarDeclNode : public Node {
 
 public:
   VarDeclNode(std::unique_ptr<VarTypeNode> vt, TOKEN id) : vt(std::move(vt)), id(id) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "VarDeclNode";
   };
@@ -483,7 +498,9 @@ public:
   LocalDeclsNode(std::unique_ptr<VarDeclNode> vd,
                  std::unique_ptr<LocalDeclsNode> lds
   ) : vd(std::move(vd)), lds(std::move(lds)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "LocalDeclsNode";
   };
@@ -495,7 +512,9 @@ class StmtNode : public Node {
 
 public:
   StmtNode() {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "StmtNode";
   };
@@ -511,7 +530,9 @@ public:
   StmtListNode(std::unique_ptr<StmtNode> s,
                 std::unique_ptr<StmtListNode> sl = nullptr
   ) : s(std::move(s)), sl(std::move(sl)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "StmtListNode";
   };
@@ -526,7 +547,9 @@ public:
   BlockNode(std::unique_ptr<LocalDeclsNode> lds,
             std::unique_ptr<StmtListNode> sl
   ) : lds(std::move(lds)), sl(std::move(sl)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "BlockNode";
   };
@@ -540,9 +563,10 @@ class ParamNode : public Node {
 public:
   ParamNode(std::unique_ptr<VarTypeNode> vt, 
             TOKEN id
-  ) : vt(std::move(vt)), id(id)
-  {}
-  virtual Value *codegen() override;
+  ) : vt(std::move(vt)), id(id) {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "ParamNode";
   };
@@ -557,7 +581,9 @@ public:
   ParamListNode(std::unique_ptr<ParamNode> p,
                 std::unique_ptr<ParamListNode> pl = nullptr
   ) : p(std::move(p)), pl(std::move(pl)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "ParamListNode";
   };
@@ -569,7 +595,9 @@ class ParamsNode : public Node {
 
 public:
   ParamsNode(std::unique_ptr<ParamListNode> pl) : pl(std::move(pl)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "ParamsNode";
   };
@@ -588,7 +616,9 @@ public:
               std::unique_ptr<BlockNode> b, 
               TOKEN id
   ) : ft(std::move(ft)), p(std::move(p)), b(std::move(b)), id(id) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "FunDeclNode";
   };
@@ -603,7 +633,9 @@ public:
   DeclNode(std::unique_ptr<VarDeclNode> vd, 
            std::unique_ptr<FunDeclNode> fd
   ) : vd(std::move(vd)), fd(std::move(fd)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "DeclNode";
   };
@@ -611,10 +643,16 @@ public:
 
 /// DeclListNode - Class for ...
 class DeclListNode : public Node {
+  std::unique_ptr<DeclNode> d;
+  std::unique_ptr<DeclListNode> dl;
 
 public:
-  DeclListNode() {}
-  virtual Value *codegen() override;
+  DeclListNode(std::unique_ptr<DeclNode> d, 
+                 std::unique_ptr<DeclListNode> dl = nullptr
+  ) : d(std::move(d)), dl(std::move(dl)) {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "DeclListNode";
   };
@@ -631,7 +669,9 @@ public:
              std::unique_ptr<ParamsNode> p,
              TOKEN id
   ) : ft(std::move(ft)), p(std::move(p)), id(id) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
       return "ExternNode";
   };
@@ -646,7 +686,9 @@ public:
   ExternListNode(std::unique_ptr<ExternNode> e, 
                  std::unique_ptr<ExternListNode> el = nullptr
   ) : e(std::move(e)), el(std::move(el)) {}
-  virtual Value *codegen() override;
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
       return "ExternListNode";
   };
@@ -654,14 +696,16 @@ public:
 
 // ProgramNode - Class for ...
 class ProgramNode : public Node {
-  std::unique_ptr<DeclListNode> dl;
   std::unique_ptr<ExternListNode> el;
+  std::unique_ptr<DeclListNode> dl;
 
 public:
-  ProgramNode(std::unique_ptr<DeclListNode> dl,
-              std::unique_ptr<ExternListNode> el = nullptr
-  ) : dl(std::move(dl)), el(std::move(el)) {}
-  virtual Value *codegen() override;
+  ProgramNode(std::unique_ptr<ExternListNode> el,
+              std::unique_ptr<DeclListNode> dl            
+  ) : el(std::move(el)), dl(std::move(dl)) {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
   virtual std::string to_string() const override {
     return "ProgramNode";
   };
@@ -674,27 +718,85 @@ public:
 // Recursive Descent Parser - Function call for each production
 //===----------------------------------------------------------------------===//
 
-static std::unique_ptr<Node> parseLiteral() {
-  //
+static std::unique_ptr<VarTypeNode> parseVarType() 
+{
+  return nullptr;
 }
 
-static std::unique_ptr<VariableNode> parseVariable() {
-  //
+static std::unique_ptr<FunTypeNode> parseFunType() 
+{
+  return nullptr;
 }
 
-static std::unique_ptr<IntNode> parseInt() {
-  //
+static std::unique_ptr<VarDeclNode> parseVarDecl() 
+{
+  return nullptr;
 }
 
-static std::unique_ptr<BoolNode> parseBool() {
-  //
+static std::unique_ptr<DeclNode> parseDecl() 
+{
+  return nullptr;
 }
 
-static std::unique_ptr<ProgramNode> parseProgram() {
-  //
+static std::unique_ptr<DeclListNode> parseDeclList() 
+{
+  auto d = parseDecl();
+  if (!d) return nullptr;
+
+  auto dl = parseDeclList();
+  if (!dl) return nullptr;
+
+  return std::make_unique<DeclListNode>(std::move(d), std::move(dl));
 }
 
-static void parse() {
+static std::unique_ptr<ExternNode> parseExtern() 
+{
+  TOKEN t1 = CurTok;
+
+  if (t1.type != EXTERN) return nullptr;
+  // Consume the EXTERN token.
+  TOKEN t2 = getNextToken();
+
+  auto ft = parseFunType();
+  if (!ft) {
+    // TODO: Rollback the EXTERN token.
+    return nullptr; 
+  }
+
+  if (CurTok.type != IDENT) return nullptr;  // TODO: rollback TOKEN?
+  // Consume the IDENT token.
+  getNextToken();
+
+  // TODO: finish
+}
+
+static std::unique_ptr<ExternListNode> parseExternList() 
+{
+  auto e = parseExtern();
+  if (!e) return nullptr;
+
+  auto el = parseExternList();
+  if (!el) return nullptr;
+
+  return std::make_unique<ExternListNode>(std::move(e), std::move(el));
+}
+
+static std::unique_ptr<ProgramNode> parseProgram() 
+{
+  auto el = parseExternList();
+  if (!el) return nullptr;
+
+  auto dl = parseDeclList();
+  if (!dl) return nullptr;
+
+  return std::make_unique<ProgramNode>(std::move(el), std::move(dl));
+}
+
+static void parse() 
+{
+  // Get the first token.
+  getNextToken();
+
   parseProgram();
 }
 
@@ -747,7 +849,7 @@ int main(int argc, char **argv) {
   TheModule = std::make_unique<Module>("mini-c", TheContext);
 
   // Run the parser now.
-  parse();
+  // parse();
   fprintf(stderr, "Parsing Finished\n");
 
   //********************* Start printing final IR **************************
