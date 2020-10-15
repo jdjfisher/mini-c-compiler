@@ -385,7 +385,12 @@ static TOKEN getNextToken()
 
 static void putBackToken(TOKEN tok) 
 { 
-  tok_buffer.push_front(tok); 
+  // if (CurTok != NULL) 
+  {
+    tok_buffer.push_front(CurTok); 
+  }
+
+  CurTok = tok;
 }
 
 //===----------------------------------------------------------------------===//
@@ -447,10 +452,10 @@ public:
 
 /// VarTypeNode - Class for ...
 class VarTypeNode : public Node {
-  std::string type;
+  TOKEN tok;
 
 public:
-  VarTypeNode(std::string type) : type(type) {}
+  VarTypeNode(TOKEN tok) : tok(tok) {}
   virtual Value *codegen() override {
     return NULL;
   };
@@ -594,7 +599,7 @@ class ParamsNode : public Node {
   std::unique_ptr<ParamListNode> pl;
 
 public:
-  ParamsNode(std::unique_ptr<ParamListNode> pl) : pl(std::move(pl)) {}
+  ParamsNode(std::unique_ptr<ParamListNode> pl = nullptr) : pl(std::move(pl)) {}
   virtual Value *codegen() override {
     return NULL;
   };
@@ -630,9 +635,8 @@ class DeclNode : public Node {
   std::unique_ptr<FunDeclNode> fd;
 
 public:
-  DeclNode(std::unique_ptr<VarDeclNode> vd, 
-           std::unique_ptr<FunDeclNode> fd
-  ) : vd(std::move(vd)), fd(std::move(fd)) {}
+  DeclNode(std::unique_ptr<VarDeclNode> vd) : vd(std::move(vd)) {}
+  DeclNode(std::unique_ptr<FunDeclNode> fd) : fd(std::move(fd)) {}
   virtual Value *codegen() override {
     return NULL;
   };
@@ -720,21 +724,172 @@ public:
 
 static std::unique_ptr<VarTypeNode> parseVarType() 
 {
-  return nullptr;
+  switch (CurTok.type)
+  {
+  case BOOL_TOK:
+  case INT_TOK:
+  case FLOAT_TOK: {
+    TOKEN t = CurTok;
+    // Consume the TYPE token.
+    getNextToken();
+    return std::make_unique<VarTypeNode>(t);
+  }
+  default:
+    return nullptr;
+  }
 }
 
 static std::unique_ptr<FunTypeNode> parseFunType() 
 {
-  return nullptr;
+  if (CurTok.type == VOID_TOK) 
+  {
+    // Consume the VOID token.
+    getNextToken();
+    return std::make_unique<FunTypeNode>();
+  }
+
+  return std::make_unique<FunTypeNode>(parseVarType());
+}
+
+static std::unique_ptr<ParamNode> parseParam() 
+{
+  auto vt = parseVarType(); 
+
+  if (CurTok.type != IDENT) return nullptr;
+  TOKEN t = CurTok;
+  // Consume the IDENT token.
+  getNextToken();
+
+  return std::make_unique<ParamNode>(std::move(vt), t);
+}
+
+static std::unique_ptr<ParamListNode> parseParamList() 
+{
+  auto p = parseParam();
+  if (!p) return nullptr;
+
+  if (CurTok.type == COMMA)
+  {
+    // Consume the void token.
+    getNextToken();
+
+    auto pl = parseParamList();
+    if (!pl) return nullptr;
+
+    return std::make_unique<ParamListNode>(std::move(p), std::move(pl));
+  }
+
+  return std::make_unique<ParamListNode>(std::move(p));
+}
+
+static std::unique_ptr<ParamsNode> parseParams() 
+{
+  auto pl = parseParamList();
+  
+  if (!pl && CurTok.type == VOID_TOK) 
+  {
+    // Consume the void token.
+    getNextToken();
+  }
+
+  return std::make_unique<ParamsNode>(std::move(pl));
 }
 
 static std::unique_ptr<VarDeclNode> parseVarDecl() 
 {
+  auto vt = parseVarType();
+  if (!vt) return nullptr;
+
+  if (CurTok.type != IDENT) return nullptr;
+  TOKEN t = CurTok;
+  // Consumer the IDENT token.
+  getNextToken();
+
+  return std::make_unique<VarDeclNode>(std::move(vt), t);
+}
+
+static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
+{
+  // auto vd = parseVarType();
+
+  // if (vd) 
+  // {
+  //   auto ld = parseLocalDecls();
+  //   if (!ld) return nullptr;
+
+  //   return std::make_unique<LocalDeclsNode>(std::move(vd), std::move(ld));
+  // }
+
+  // return std::make_unique<LocalDeclsNode>();
+
   return nullptr;
+}
+
+static std::unique_ptr<StmtListNode> parseStmtList() 
+{
+  return nullptr;
+}
+
+static std::unique_ptr<BlockNode> parseBlock() 
+{
+  if (CurTok.type != LBRA) return nullptr;
+  // Consumer the { token.
+  getNextToken();
+
+  auto ld = parseLocalDecls();
+  if (!ld) return nullptr;
+
+  auto sl = parseStmtList();
+  if (!sl) return nullptr;
+
+  if (CurTok.type != RBRA) return nullptr;
+  // Consumer the } token.
+  getNextToken();
+
+  return std::make_unique<BlockNode>(std::move(ld), std::move(sl));
+}
+
+static std::unique_ptr<FunDeclNode> parseFunDecl() 
+{
+  auto ft = parseFunType();
+  if (!ft) return nullptr;
+
+  if (CurTok.type != IDENT) return nullptr;
+  TOKEN t = CurTok;
+  // Consumer the IDENT token.
+  getNextToken();
+
+  if (CurTok.type != LPAR) return nullptr;
+  // Consumer the ( token.
+  getNextToken();
+
+  auto p = parseParams();
+  if (!p) return nullptr;
+
+  if (CurTok.type != RPAR) return nullptr;
+  // Consumer the ) token.
+  getNextToken(); 
+
+  auto b = parseBlock();
+  if (!b) return nullptr;
+
+  return std::make_unique<FunDeclNode>(
+    std::move(ft), std::move(p), std::move(b), t
+  );
 }
 
 static std::unique_ptr<DeclNode> parseDecl() 
 {
+  if (auto vd = parseVarDecl()) 
+  {
+    return std::make_unique<DeclNode>(std::move(vd));
+  }
+
+  if (auto fd = parseFunDecl()) 
+  {
+    return std::make_unique<DeclNode>(std::move(fd));
+  }
+
   return nullptr;
 }
 
@@ -751,23 +906,36 @@ static std::unique_ptr<DeclListNode> parseDeclList()
 
 static std::unique_ptr<ExternNode> parseExtern() 
 {
-  TOKEN t1 = CurTok;
-
-  if (t1.type != EXTERN) return nullptr;
+  if (CurTok.type != EXTERN) return nullptr;
   // Consume the EXTERN token.
-  TOKEN t2 = getNextToken();
+  getNextToken();
 
   auto ft = parseFunType();
-  if (!ft) {
-    // TODO: Rollback the EXTERN token.
-    return nullptr; 
-  }
+  if (!ft) return nullptr; 
 
-  if (CurTok.type != IDENT) return nullptr;  // TODO: rollback TOKEN?
+  if (CurTok.type != IDENT) return nullptr; 
+  TOKEN t = CurTok;
   // Consume the IDENT token.
   getNextToken();
 
-  // TODO: finish
+  if (CurTok.type != LPAR) return nullptr; 
+  // Consume the ( token.
+  getNextToken();
+
+  auto p = parseParams();
+  if (!p) return nullptr; 
+
+  if (CurTok.type != RPAR) return nullptr; 
+  // Consume the ) token.
+  getNextToken();
+
+  if (CurTok.type != SC) return nullptr; 
+  // Consume the ; token.
+  getNextToken();
+
+  return std::make_unique<ExternNode>(
+    std::move(ft), std::move(p), t
+  );
 }
 
 static std::unique_ptr<ExternListNode> parseExternList() 
@@ -837,19 +1005,19 @@ int main(int argc, char **argv) {
   columnNo = 1;
 
   // get the first token
-  getNextToken();
-  while (CurTok.type != EOF_TOK) {
-    fprintf(stderr, "Token: %s with type %d\n", CurTok.lexeme.c_str(),
-            CurTok.type);
-    getNextToken();
-  }
-  fprintf(stderr, "Lexer Finished\n");
+  // getNextToken();
+  // while (CurTok.type != EOF_TOK) {
+  //   fprintf(stderr, "Token: %s with type %d\n", CurTok.lexeme.c_str(),
+  //           CurTok.type);
+  //   getNextToken();
+  // }
+  // fprintf(stderr, "Lexer Finished\n");
 
   // Make the module, which holds all the code.
   TheModule = std::make_unique<Module>("mini-c", TheContext);
 
   // Run the parser now.
-  // parse();
+  parse();
   fprintf(stderr, "Parsing Finished\n");
 
   //********************* Start printing final IR **************************
