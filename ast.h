@@ -70,7 +70,7 @@ class ParamsNode;
 class ParamListNode;
 class ParamNode;
 class LocalDeclsNode;
-class BlockNode;
+class BlockStmtNode;
 class StmtListNode;
 class StmtNode;
 class ExprStmtNode;
@@ -78,6 +78,16 @@ class WhileStmtNode;
 class IfStmtNode;
 class ElseStmtNode;
 class ReturnStmtNode;
+class ArgsNode;
+class ArgListNode;
+class ExprNode;
+class DisjNode;
+class ConjNode;
+class EqualNode;
+class OrderNode;
+class TermNode;
+class FactorNode;
+class LiteralNode;
 // class IntNode;
 // class BoolNode;
 // class VariableNode;
@@ -90,13 +100,13 @@ class ProgramNode : public Node
     DeclListNode* dl;
 
   public:
-    ProgramNode(ExternListNode* el,
-                DeclListNode* dl            
-    ) : el(el), dl(dl) {}
-    virtual llvm::Value *codegen() override {
+    ProgramNode(ExternListNode* el, DeclListNode* dl) : el(el), dl(dl) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL; // TODO: Translate to LLVM IR
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "ProgramNode"; // TODO: Stringify node recursively
     };
 };
@@ -109,13 +119,13 @@ class ExternListNode : public Node
     ExternListNode* el;
 
 public:
-  ExternListNode(ExternNode* e, 
-                 ExternListNode* el = nullptr
-  ) : e(e), el(el) {}
-  virtual llvm::Value *codegen() override {
+  ExternListNode(ExternNode* e, ExternListNode* el = nullptr) : e(e), el(el) {}
+  virtual llvm::Value *codegen() override
+  {
     return NULL;
   };
-  virtual std::string to_string() const override {
+  virtual std::string to_string() const override
+  {
       return "ExternListNode";
   };
 };
@@ -125,18 +135,17 @@ class ExternNode : public Node
 {
   private:
     FunTypeNode* ft;
-    ParamsNode* p;
     TOKEN id;
+    ParamsNode* p;
 
   public:
-    ExternNode(FunTypeNode* ft, 
-              ParamsNode* p,
-              TOKEN id
-    ) : ft(ft), p(p), id(id) {}
-    virtual llvm::Value *codegen() override {
+    ExternNode(FunTypeNode* ft, TOKEN id, ParamsNode* p) : ft(ft), id(id), p(p) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
         return "ExternNode";
     };
 };
@@ -149,13 +158,13 @@ class DeclListNode : public Node
     DeclListNode* dl;
 
   public:
-    DeclListNode(DeclNode* d, 
-                  DeclListNode* dl = nullptr
-    ) : d(d), dl(dl) {}
-    virtual llvm::Value *codegen() override {
+    DeclListNode(DeclNode* d, DeclListNode* dl = nullptr) : d(d), dl(dl) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "DeclListNode";
     };
 };
@@ -170,10 +179,12 @@ class DeclNode : public Node
   public:
     DeclNode(VarDeclNode* vd) : vd(vd) {}
     DeclNode(FunDeclNode* fd) : fd(fd) {}
-    virtual llvm::Value *codegen() override {
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "DeclNode";
     };
 };
@@ -187,10 +198,12 @@ class VarDeclNode : public Node
 
   public:
     VarDeclNode(VarTypeNode* vt, TOKEN id) : vt(vt), id(id) {}
-    virtual llvm::Value *codegen() override {
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "VarDeclNode";
     };
 };
@@ -203,10 +216,12 @@ class FunTypeNode : public Node
 
   public:
     FunTypeNode(VarTypeNode* vt = nullptr) : vt(vt) {}
-    virtual llvm::Value *codegen() override {
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "FunTypeNode";
     };
 };
@@ -219,10 +234,12 @@ class VarTypeNode : public Node
 
   public:
     VarTypeNode(TOKEN tok) : tok(tok) {}
-    virtual llvm::Value *codegen() override {
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "VarTypeNode";
     };
 };
@@ -232,20 +249,22 @@ class FunDeclNode : public Node
 {
   private:
     FunTypeNode* ft;
-    ParamsNode* p;
-    BlockNode* b;
     TOKEN id;
+    ParamsNode* p;
+    BlockStmtNode* bs;
 
   public:
     FunDeclNode(FunTypeNode* ft, 
+                TOKEN id,
                 ParamsNode* p, 
-                BlockNode* b, 
-                TOKEN id
-    ) : ft(ft), p(p), b(b), id(id) {}
-    virtual llvm::Value *codegen() override {
+                BlockStmtNode* bs
+    ) : ft(ft), id(id), p(p), bs(bs) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "FunDeclNode";
     };
 };
@@ -258,10 +277,12 @@ class ParamsNode : public Node
 
   public:
     ParamsNode(ParamListNode* pl = nullptr) : pl(pl) {}
-    virtual llvm::Value *codegen() override {
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "ParamsNode";
     };
 };
@@ -275,13 +296,13 @@ class ParamListNode : public Node
     ParamListNode* pl;
 
   public:
-    ParamListNode(ParamNode* p,
-                  ParamListNode* pl = nullptr
-    ) : p(p), pl(pl) {}
-    virtual llvm::Value *codegen() override {
+    ParamListNode(ParamNode* p, ParamListNode* pl = nullptr) : p(p), pl(pl) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "ParamListNode";
     };
 };
@@ -294,13 +315,13 @@ class ParamNode : public Node
     TOKEN id;
 
   public:
-    ParamNode(VarTypeNode* vt, 
-              TOKEN id
-    ) : vt(vt), id(id) {}
-    virtual llvm::Value *codegen() override {
+    ParamNode(VarTypeNode* vt, TOKEN id) : vt(vt), id(id) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "ParamNode";
     };
 };
@@ -314,33 +335,33 @@ class LocalDeclsNode : public Node
 
   public:
     LocalDeclsNode() {}
-    LocalDeclsNode(VarDeclNode* vd,
-                  LocalDeclsNode* lds
-    ) : vd(vd), lds(lds) {}
-    virtual llvm::Value *codegen() override {
+    LocalDeclsNode(VarDeclNode* vd, LocalDeclsNode* lds) : vd(vd), lds(lds) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "LocalDeclsNode";
     };
 };
 
-// BlockNode - Class for ...
-class BlockNode : public Node 
+// BlockStmtNode - Class for ...
+class BlockStmtNode : public Node 
 {
   private:
     LocalDeclsNode* lds;
     StmtListNode* sl;
 
   public:
-    BlockNode(LocalDeclsNode* lds,
-              StmtListNode* sl
-    ) : lds(lds), sl(sl) {}
-    virtual llvm::Value *codegen() override {
+    BlockStmtNode(LocalDeclsNode* lds, StmtListNode* sl) : lds(lds), sl(sl) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
-      return "BlockNode";
+    virtual std::string to_string() const override
+    {
+      return "BlockStmtNode";
     };
 };
 
@@ -353,13 +374,13 @@ class StmtListNode : public Node
 
   public:
     StmtListNode() {}
-    StmtListNode(StmtNode* s,
-                StmtListNode* sl
-    ) : s(s), sl(sl) {}
-    virtual llvm::Value *codegen() override {
+    StmtListNode(StmtNode* s, StmtListNode* sl) : s(s), sl(sl) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "StmtListNode";
     };
 };
@@ -368,14 +389,20 @@ class StmtListNode : public Node
 class StmtNode : public Node 
 {
   private:
+    ExprStmtNode* es;
+    BlockStmtNode* bs;
+    IfStmtNode* is;
+    WhileStmtNode* ws;
     // TODO: ...
 
   public:
     StmtNode() {}
-    virtual llvm::Value *codegen() override {
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "StmtNode";
     };
 };
@@ -384,14 +411,16 @@ class StmtNode : public Node
 class ExprStmtNode : public Node 
 {
   private:
-    // TODO: ...
+    ExprNode* e;
 
   public:
-    ExprStmtNode() {}
-    virtual llvm::Value *codegen() override {
+    ExprStmtNode(ExprNode* e = nullptr) : e(e) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "ExprStmtNode";
     };
 };
@@ -400,14 +429,17 @@ class ExprStmtNode : public Node
 class WhileStmtNode : public Node 
 {
   private:
-    // TODO: ...
+    ExprNode* e;
+    StmtNode* s;
 
   public:
-    WhileStmtNode() {}
-    virtual llvm::Value *codegen() override {
+    WhileStmtNode(ExprNode* e, StmtNode* s) : e(e), s(s) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "WhileStmtNode";
     };
 };
@@ -416,14 +448,18 @@ class WhileStmtNode : public Node
 class IfStmtNode : public Node 
 {
   private:
-    // TODO: ...
+    ExprNode* e;
+    BlockStmtNode* bs;
+    ElseStmtNode* es;
 
   public:
-    IfStmtNode() {}
-    virtual llvm::Value *codegen() override {
+    IfStmtNode(ExprNode* e, BlockStmtNode* bs, ElseStmtNode* es) : e(e), bs(bs), es(es) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "IfStmtNode";
     };
 };
@@ -432,14 +468,16 @@ class IfStmtNode : public Node
 class ElseStmtNode : public Node 
 {
   private:
-    // TODO: ...
+    BlockStmtNode* bs;
 
   public:
-    ElseStmtNode() {}
-    virtual llvm::Value *codegen() override {
+    ElseStmtNode(BlockStmtNode* bs) : bs(bs) {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
+    virtual std::string to_string() const override
+    {
       return "ElseStmtNode";
     };
 };
@@ -448,15 +486,215 @@ class ElseStmtNode : public Node
 class ReturnStmtNode : public Node 
 {
   private:
+    ExprNode* e;
+
+  public:
+    ReturnStmtNode(ExprNode* e) : e(e) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "ReturnStmtNode";
+    };
+};
+
+// ArgsNode - Class for ...
+class ArgsNode : public Node 
+{
+  private:
+    ArgListNode* al;
+
+  public:
+    ArgsNode(ArgListNode* al) : al(al) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "ArgsNode";
+    };
+};
+
+// ArgListNode - Class for ...
+class ArgListNode : public Node 
+{
+  private:
+    ExprNode* e;
+    ArgListNode* al;
+
+  public:
+    ArgListNode(ExprNode* e, ArgListNode* al) : e(e), al(al) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "ArgListNode";
+    };
+};
+
+// ExprNode - Class for ...
+class ExprNode : public Node 
+{
+  private:
+    TOKEN id;
+    ExprNode* e;
+    DisjNode* d;
+
+  public:
+    ExprNode(TOKEN id, ExprNode* e) : id(id), e(e) {}
+    ExprNode(DisjNode* d) : d(d) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "ExprNode";
+    };
+};
+
+// DisjNode - Class for ...
+class DisjNode : public Node 
+{
+  private:
+    ConjNode* c;
+    DisjNode* d;
+
+  public:
+    DisjNode(ConjNode* c, DisjNode* d = nullptr) : c(c), d(d) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "DisjNode";
+    };
+};
+
+// ConjNode - Class for ...
+class ConjNode : public Node 
+{
+  private:
+    EqualNode* e;
+    ConjNode* c;
+
+  public:
+    ConjNode(EqualNode* e, ConjNode* c = nullptr) : e(e), c(c) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "ConjNode";
+    };
+};
+
+// EqualNode - Class for ...
+class EqualNode : public Node 
+{
+  private:
+    OrderNode* o;
+    TOKEN op;
+    EqualNode* e;
+
+  public:
+    EqualNode(OrderNode* o) : o(o) {}
+    EqualNode(OrderNode* o, TOKEN op, EqualNode* e) : o(o), op(op), e(e) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "EqualNode";
+    };
+};
+
+// OrderNode - Class for ...
+class OrderNode : public Node 
+{
+  private:
+    TermNode* t;
+    TOKEN op;
+    OrderNode* o;
+
+  public:
+    OrderNode(TermNode* t) : t(t) {}
+    OrderNode(TermNode* t, TOKEN op, OrderNode* o) : t(t), op(op), o(o) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "OrderNode";
+    };
+};
+
+// TermNode - Class for ...
+class TermNode : public Node 
+{
+  private:
+    FactorNode* f;
+    TOKEN op;
+    TermNode* t;
+
+  public:
+    TermNode(FactorNode* f) : f(f) {}
+    TermNode(FactorNode* f, TOKEN op, TermNode* t) : f(f), op(op), t(t) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "TermNode";
+    };
+};
+
+// FactorNode - Class for ...
+class FactorNode : public Node 
+{
+  private:
+    LiteralNode* l;
+    TOKEN op;
+    FactorNode* f;
+
+  public:
+    FactorNode(LiteralNode* l) : l(l) {}
+    FactorNode(LiteralNode* l, TOKEN op, FactorNode* f) : l(l), op(op), f(f) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "FactorNode";
+    };
+};
+
+// LiteralNode - Class for ...
+class LiteralNode : public Node 
+{
+  private:
     // TODO: ...
 
   public:
-    ReturnStmtNode() {}
-    virtual llvm::Value *codegen() override {
+    LiteralNode() {}
+    virtual llvm::Value *codegen() override
+    {
       return NULL;
     };
-    virtual std::string to_string() const override {
-      return "ReturnStmtNode";
+    virtual std::string to_string() const override
+    {
+      return "LiteralNode";
     };
 };
 
@@ -469,10 +707,12 @@ class ReturnStmtNode : public Node
 
 //   public:
 //     VariableNode(TOKEN tok, std::string val) : val(val), tok(tok) {}
-//     virtual llvm::Value *codegen() override {
+//     virtual llvm::Value *codegen() override
+//     {
 //       return NULL;
 //     };
-//     virtual std::string to_string() const override {
+//     virtual std::string to_string() const override
+//     {
 //       return val;
 //     };
 // };
@@ -486,10 +726,12 @@ class ReturnStmtNode : public Node
 
 //   public:
 //     IntNode(TOKEN tok, int val) : val(val), tok(tok) {}
-//     virtual llvm::Value *codegen() override {
+//     virtual llvm::Value *codegen() override
+//     {
 //       return NULL;
 //     };
-//     virtual std::string to_string() const override {
+//     virtual std::string to_string() const override
+//     {
 //       return std::to_string(val);
 //     };
 // };
@@ -503,10 +745,12 @@ class ReturnStmtNode : public Node
 
 //   public:
 //     BoolNode(TOKEN tok, bool val) : val(val), tok(tok) {}
-//     virtual llvm::Value *codegen() override {
+//     virtual llvm::Value *codegen() override
+//     {
 //       return NULL;
 //     };
-//     virtual std::string to_string() const override {
+//     virtual std::string to_string() const override
+//     {
 //       return val ? "true" : "false";
 //     };
 // };

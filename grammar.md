@@ -22,7 +22,7 @@ var_type ::= "int"
            | "float" 
            | "bool"
 
-fun_decl ::= fun_type IDENT "(" params ")" block
+fun_decl ::= fun_type IDENT "(" params ")" block_stmt
 
 params ::= param_list
          | "void" 
@@ -36,13 +36,13 @@ param ::= var_type IDENT
 local_decls ::= var_decl local_decls
               | epsilon
               
-block ::= "{" local_decls stmt_list "}"
+block_stmt ::= "{" local_decls stmt_list "}"
 
 stmt_list ::= stmt stmt_list
             | epsilon
 
 stmt ::= expr_stmt
-       | block
+       | block_stmt
        | if_stmt
        | while_stmt
        | return_stmt
@@ -52,13 +52,19 @@ expr_stmt ::= expr ";"
 
 while_stmt ::= "while" "(" expr ")" stmt
 
-if_stmt ::= "if" "(" expr ")" block else_stmt
+if_stmt ::= "if" "(" expr ")" block_stmt else_stmt
 
-else_stmt ::= "else" block
+else_stmt ::= "else" block_stmt
             | epsilon
 
 return_stmt ::= "return" ";"
               | "return" expr ";"
+
+args ::= arg_list
+       | epsilon
+
+arg_list ::= expr "," arg_list
+           | expr
 
 expr ::= IDENT "=" expr
        | disj
@@ -99,10 +105,4 @@ literal ::= "-" literal
           | "(" expr ")"
           | IDENT | IDENT "(" args ")"
           | INT_LIT | FLOAT_LIT | BOOL_LIT
-
-args ::= arg_list
-       | epsilon
-
-arg_list ::= expr "," arg_list
-           | expr
 ```

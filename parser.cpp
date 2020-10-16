@@ -94,7 +94,7 @@ static ExternNode* parseExtern()
   // Consume the ; token.
   getNextToken();
 
-  return new ExternNode(ft, p, t);
+  return new ExternNode(ft, t, p);
 }
 
 static DeclListNode* parseDeclList() 
@@ -186,10 +186,10 @@ static FunDeclNode* parseFunDecl()
   // Consumer the ) token.
   getNextToken(); 
 
-  auto b = parseBlock();
+  auto b = parseBlockStmt();
   if (!b) return nullptr;
 
-  return new FunDeclNode(ft, p, b, t);
+  return new FunDeclNode(ft, t, p, b);
 }
 
 static ParamsNode* parseParams() 
@@ -249,7 +249,7 @@ static LocalDeclsNode* parseLocalDecls()
   return new LocalDeclsNode();
 }
 
-static BlockNode* parseBlock() 
+static BlockStmtNode* parseBlockStmt() 
 {
   if (CurTok.type != LBRA) return nullptr;
   // Consumer the { token.
@@ -265,7 +265,7 @@ static BlockNode* parseBlock()
   // Consumer the } token.
   getNextToken();
 
-  return new BlockNode(ld, sl);
+  return new BlockStmtNode(ld, sl);
 }
 
 static StmtListNode* parseStmtList() 
@@ -302,6 +302,56 @@ static WhileStmtNode* parseWhileStmt()
 }
 
 static ReturnStmtNode* parseReturnStmt() 
+{
+  return nullptr;
+}
+
+static ArgsNode* parseArgs()
+{
+  return nullptr;
+}
+
+static ArgListNode* parseArgList()
+{
+  return nullptr;
+}
+
+static ExprNode* parseExpr()
+{
+  return nullptr;
+}
+
+static DisjNode* parseDisj()
+{
+  return nullptr;
+}
+
+static ConjNode* parseConj()
+{
+  return nullptr;
+}
+
+static EqualNode* parseEqual()
+{
+  return nullptr;
+}
+
+static OrderNode* parseOrder()
+{
+  return nullptr;
+}
+
+static TermNode* parseTerm()
+{
+  return nullptr;
+}
+
+static FactorNode* parseFactor()
+{
+  return nullptr;
+}
+
+static LiteralNode* parseLiteral()
 {
   return nullptr;
 }
