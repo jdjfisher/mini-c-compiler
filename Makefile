@@ -6,7 +6,7 @@ FLAGS_FOR_DCS_SYSTEMS=-stdlib=libstdc++ -cxx-isystem /local/java/gcc-9.2.0/inclu
 
 
 all: 
-	$(CXX) lexer.cpp ast.cpp parser.cpp mccomp.cpp $(CFLAGS) $(FLAGS_FOR_DCS_SYSTEMS) -o mccomp
+	$(CXX) lexer.cpp parser.cpp mccomp.cpp $(CFLAGS) $(FLAGS_FOR_DCS_SYSTEMS) -o mccomp
 
 clean:
 	rm -rf mccomp 

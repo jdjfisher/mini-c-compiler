@@ -42,7 +42,7 @@ static TOKEN returnTok(std::string lexVal, int tok_type) {
 // Read file line by line -- or look for \n and if found add 1 to line number
 // and reset column number to 0
 /// gettok - Return the next token from standard input.
-static TOKEN gettok() {
+TOKEN gettok() {
 
   static int LastChar = ' ';
   static int NextChar = ' ';

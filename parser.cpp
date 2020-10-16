@@ -35,15 +35,15 @@ static void putBackToken(TOKEN tok)
   CurTok = tok;
 }
 
-static void parse() 
+void parse() 
 {
   // Get the first token.
   getNextToken();
 
-  parseProgram();
+  auto p = parseProgram();
 }
 
-static std::unique_ptr<ProgramNode> parseProgram() 
+static ProgramNode* parseProgram() 
 {
   auto el = parseExternList();
   if (!el) return nullptr;
@@ -51,10 +51,10 @@ static std::unique_ptr<ProgramNode> parseProgram()
   auto dl = parseDeclList();
   if (!dl) return nullptr;
 
-  return std::make_unique<ProgramNode>(std::move(el), std::move(dl));
+  return new ProgramNode(el, dl);
 }
 
-static std::unique_ptr<ExternListNode> parseExternList() 
+static ExternListNode* parseExternList() 
 {
   auto e = parseExtern();
   if (!e) return nullptr;
@@ -62,10 +62,10 @@ static std::unique_ptr<ExternListNode> parseExternList()
   auto el = parseExternList();
   if (!el) return nullptr;
 
-  return std::make_unique<ExternListNode>(std::move(e), std::move(el));
+  return new ExternListNode(e, el);
 }
 
-static std::unique_ptr<ExternNode> parseExtern() 
+static ExternNode* parseExtern() 
 {
   if (CurTok.type != EXTERN) return nullptr;
   // Consume the EXTERN token.
@@ -94,12 +94,10 @@ static std::unique_ptr<ExternNode> parseExtern()
   // Consume the ; token.
   getNextToken();
 
-  return std::make_unique<ExternNode>(
-    std::move(ft), std::move(p), t
-  );
+  return new ExternNode(ft, p, t);
 }
 
-static std::unique_ptr<DeclListNode> parseDeclList() 
+static DeclListNode* parseDeclList() 
 {
   auto d = parseDecl();
   if (!d) return nullptr;
@@ -107,25 +105,25 @@ static std::unique_ptr<DeclListNode> parseDeclList()
   auto dl = parseDeclList();
   if (!dl) return nullptr;
 
-  return std::make_unique<DeclListNode>(std::move(d), std::move(dl));
+  return new DeclListNode(d, dl);
 }
 
-static std::unique_ptr<DeclNode> parseDecl() 
+static DeclNode* parseDecl() 
 {
   if (auto vd = parseVarDecl()) 
   {
-    return std::make_unique<DeclNode>(std::move(vd));
+    return new DeclNode(vd);
   }
 
   if (auto fd = parseFunDecl()) 
   {
-    return std::make_unique<DeclNode>(std::move(fd));
+    return new DeclNode(fd);
   }
 
   return nullptr;
 }
 
-static std::unique_ptr<VarDeclNode> parseVarDecl() 
+static VarDeclNode* parseVarDecl() 
 {
   auto vt = parseVarType();
   if (!vt) return nullptr;
@@ -135,22 +133,22 @@ static std::unique_ptr<VarDeclNode> parseVarDecl()
   // Consumer the IDENT token.
   getNextToken();
 
-  return std::make_unique<VarDeclNode>(std::move(vt), t);
+  return new VarDeclNode(vt, t);
 }
 
-static std::unique_ptr<FunTypeNode> parseFunType() 
+static FunTypeNode* parseFunType() 
 {
   if (CurTok.type == VOID_TOK) 
   {
     // Consume the VOID token.
     getNextToken();
-    return std::make_unique<FunTypeNode>();
+    return new FunTypeNode();
   }
 
-  return std::make_unique<FunTypeNode>(parseVarType());
+  return new FunTypeNode(parseVarType());
 }
 
-static std::unique_ptr<VarTypeNode> parseVarType() 
+static VarTypeNode* parseVarType() 
 {
   switch (CurTok.type)
   {
@@ -160,14 +158,14 @@ static std::unique_ptr<VarTypeNode> parseVarType()
     TOKEN t = CurTok;
     // Consume the TYPE token.
     getNextToken();
-    return std::make_unique<VarTypeNode>(t);
+    return new VarTypeNode(t);
   }
   default:
     return nullptr;
   }
 }
 
-static std::unique_ptr<FunDeclNode> parseFunDecl() 
+static FunDeclNode* parseFunDecl() 
 {
   auto ft = parseFunType();
   if (!ft) return nullptr;
@@ -191,12 +189,10 @@ static std::unique_ptr<FunDeclNode> parseFunDecl()
   auto b = parseBlock();
   if (!b) return nullptr;
 
-  return std::make_unique<FunDeclNode>(
-    std::move(ft), std::move(p), std::move(b), t
-  );
+  return new FunDeclNode(ft, p, b, t);
 }
 
-static std::unique_ptr<ParamsNode> parseParams() 
+static ParamsNode* parseParams() 
 {
   auto pl = parseParamList();
   
@@ -206,10 +202,10 @@ static std::unique_ptr<ParamsNode> parseParams()
     getNextToken();
   }
 
-  return std::make_unique<ParamsNode>(std::move(pl));
+  return new ParamsNode(pl);
 }
 
-static std::unique_ptr<ParamListNode> parseParamList() 
+static ParamListNode* parseParamList() 
 {
   auto p = parseParam();
   if (!p) return nullptr;
@@ -222,13 +218,13 @@ static std::unique_ptr<ParamListNode> parseParamList()
     auto pl = parseParamList();
     if (!pl) return nullptr;
 
-    return std::make_unique<ParamListNode>(std::move(p), std::move(pl));
+    return new ParamListNode(p, pl);
   }
 
-  return std::make_unique<ParamListNode>(std::move(p));
+  return new ParamListNode(p);
 }
 
-static std::unique_ptr<ParamNode> parseParam() 
+static ParamNode* parseParam() 
 {
   auto vt = parseVarType(); 
 
@@ -237,23 +233,23 @@ static std::unique_ptr<ParamNode> parseParam()
   // Consume the IDENT token.
   getNextToken();
 
-  return std::make_unique<ParamNode>(std::move(vt), t);
+  return new ParamNode(vt, t);
 }
 
-static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
+static LocalDeclsNode* parseLocalDecls() 
 {
   if (auto vd = parseVarDecl()) 
   {
     auto ld = parseLocalDecls();
     if (!ld) return nullptr;
 
-    return std::make_unique<LocalDeclsNode>(std::move(vd), std::move(ld));
+    return new LocalDeclsNode(vd, ld);
   }
 
-  return std::make_unique<LocalDeclsNode>();
+  return new LocalDeclsNode();
 }
 
-static std::unique_ptr<BlockNode> parseBlock() 
+static BlockNode* parseBlock() 
 {
   if (CurTok.type != LBRA) return nullptr;
   // Consumer the { token.
@@ -269,43 +265,43 @@ static std::unique_ptr<BlockNode> parseBlock()
   // Consumer the } token.
   getNextToken();
 
-  return std::make_unique<BlockNode>(std::move(ld), std::move(sl));
+  return new BlockNode(ld, sl);
 }
 
-static std::unique_ptr<StmtListNode> parseStmtList() 
+static StmtListNode* parseStmtList() 
 {  
   if (auto s = parseStmt())
   {
     auto sl = parseStmtList();
     if (!sl) return nullptr;
 
-    return std::make_unique<StmtListNode>(std::move(s), std::move(sl));
+    return new StmtListNode(s, sl);
   }
 
-  return std::make_unique<StmtListNode>();
+  return new StmtListNode();
 }
 
-static std::unique_ptr<StmtNode> parseStmt() 
+static StmtNode* parseStmt() 
 {
   return nullptr;
 }
 
-static std::unique_ptr<ExprStmtNode> parseExprStmt() 
+static ExprStmtNode* parseExprStmt() 
 {
   return nullptr;
 }
 
-static std::unique_ptr<IfStmtNode> parseIfStmt() 
+static IfStmtNode* parseIfStmt() 
 {
   return nullptr;
 }
 
-static std::unique_ptr<WhileStmtNode> parseWhileStmt() 
+static WhileStmtNode* parseWhileStmt() 
 {
   return nullptr;
 }
 
-static std::unique_ptr<ReturnStmtNode> parseReturnStmt() 
+static ReturnStmtNode* parseReturnStmt() 
 {
   return nullptr;
 }

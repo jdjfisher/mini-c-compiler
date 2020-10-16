@@ -17,24 +17,24 @@
 // Application imports
 #include "ast.h"
 
-static void parse();
-static std::unique_ptr<ProgramNode> parseProgram();
-static std::unique_ptr<ExternListNode> parseExternList();
-static std::unique_ptr<ExternNode> parseExtern();
-static std::unique_ptr<DeclListNode> parseDeclList();
-static std::unique_ptr<DeclNode> parseDecl();
-static std::unique_ptr<VarDeclNode> parseVarDecl();
-static std::unique_ptr<FunTypeNode> parseFunType();
-static std::unique_ptr<VarTypeNode> parseVarType();
-static std::unique_ptr<FunDeclNode> parseFunDecl();
-static std::unique_ptr<ParamsNode> parseParams();
-static std::unique_ptr<ParamListNode> parseParamList();
-static std::unique_ptr<ParamNode> parseParam();
-static std::unique_ptr<LocalDeclsNode> parseLocalDecls();
-static std::unique_ptr<BlockNode> parseBlock();
-static std::unique_ptr<StmtListNode> parseStmtList();
-static std::unique_ptr<StmtNode> parseStmt();
-static std::unique_ptr<ExprStmtNode> parseExprStmt();
-static std::unique_ptr<IfStmtNode> parseIfStmt();
-static std::unique_ptr<WhileStmtNode> parseWhileStmt();
-static std::unique_ptr<ReturnStmtNode> parseReturnStmt();
+void parse();
+static ProgramNode* parseProgram();
+static ExternListNode* parseExternList();
+static ExternNode* parseExtern();
+static DeclListNode* parseDeclList();
+static DeclNode* parseDecl();
+static VarDeclNode* parseVarDecl();
+static FunTypeNode* parseFunType();
+static VarTypeNode* parseVarType();
+static FunDeclNode* parseFunDecl();
+static ParamsNode* parseParams();
+static ParamListNode* parseParamList();
+static ParamNode* parseParam();
+static LocalDeclsNode* parseLocalDecls();
+static BlockNode* parseBlock();
+static StmtListNode* parseStmtList();
+static StmtNode* parseStmt();
+static ExprStmtNode* parseExprStmt();
+static IfStmtNode* parseIfStmt();
+static WhileStmtNode* parseWhileStmt();
+static ReturnStmtNode* parseReturnStmt();
