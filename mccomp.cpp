@@ -511,6 +511,79 @@ public:
   };
 };
 
+// ExprStmtNode - Class for ...
+class ExprStmtNode : public Node {
+  // TODO: ...
+
+public:
+  ExprStmtNode() {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
+  virtual std::string to_string() const override {
+    return "ExprStmtNode";
+  };
+};
+
+/// BlockNode - Class for ...
+class BlockNode : public Node {
+//   std::unique_ptr<LocalDeclsNode> lds;
+//   std::unique_ptr<StmtListNode> sl;
+
+// public:
+//   BlockNode(std::unique_ptr<LocalDeclsNode> lds,
+//             std::unique_ptr<StmtListNode> sl
+//   ) : lds(std::move(lds)), sl(std::move(sl)) {}
+//   virtual Value *codegen() override {
+//     return NULL;
+//   };
+//   virtual std::string to_string() const override {
+//     return "BlockNode";
+//   };
+};
+
+// IfStmtNode - Class for ...
+class IfStmtNode : public Node {
+  // TODO: ...
+
+public:
+  IfStmtNode() {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
+  virtual std::string to_string() const override {
+    return "IfStmtNode";
+  };
+};
+
+// WhileStmtNode - Class for ...
+class WhileStmtNode : public Node {
+  // TODO: ...
+
+public:
+  WhileStmtNode() {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
+  virtual std::string to_string() const override {
+    return "WhileStmtNode";
+  };
+};
+
+// ReturnStmtNode - Class for ...
+class ReturnStmtNode : public Node {
+  // TODO: ...
+
+public:
+  ReturnStmtNode() {}
+  virtual Value *codegen() override {
+    return NULL;
+  };
+  virtual std::string to_string() const override {
+    return "ReturnStmtNode";
+  };
+};
+
 /// StmtNode - Class for ...
 class StmtNode : public Node {
   // TODO: ...
@@ -533,30 +606,13 @@ class StmtListNode : public Node {
 public:
   StmtListNode() {}
   StmtListNode(std::unique_ptr<StmtNode> s,
-                std::unique_ptr<StmtListNode> sl = nullptr
+               std::unique_ptr<StmtListNode> sl
   ) : s(std::move(s)), sl(std::move(sl)) {}
   virtual Value *codegen() override {
     return NULL;
   };
   virtual std::string to_string() const override {
     return "StmtListNode";
-  };
-};
-
-/// BlockNode - Class for ...
-class BlockNode : public Node {
-  std::unique_ptr<LocalDeclsNode> lds;
-  std::unique_ptr<StmtListNode> sl;
-
-public:
-  BlockNode(std::unique_ptr<LocalDeclsNode> lds,
-            std::unique_ptr<StmtListNode> sl
-  ) : lds(std::move(lds)), sl(std::move(sl)) {}
-  virtual Value *codegen() override {
-    return NULL;
-  };
-  virtual std::string to_string() const override {
-    return "BlockNode";
   };
 };
 
@@ -810,22 +866,18 @@ static std::unique_ptr<VarDeclNode> parseVarDecl()
 
 static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
 {
-  // auto vd = parseVarType();
+  if (auto vd = parseVarDecl()) 
+  {
+    auto ld = parseLocalDecls();
+    if (!ld) return nullptr;
 
-  // if (vd) 
-  // {
-  //   auto ld = parseLocalDecls();
-  //   if (!ld) return nullptr;
+    return std::make_unique<LocalDeclsNode>(std::move(vd), std::move(ld));
+  }
 
-  //   return std::make_unique<LocalDeclsNode>(std::move(vd), std::move(ld));
-  // }
-
-  // return std::make_unique<LocalDeclsNode>();
-
-  return nullptr;
+  return std::make_unique<LocalDeclsNode>();
 }
 
-static std::unique_ptr<StmtListNode> parseStmtList() 
+static std::unique_ptr<ExprStmtNode> parseExprStmt() 
 {
   return nullptr;
 }
@@ -839,14 +891,48 @@ static std::unique_ptr<BlockNode> parseBlock()
   auto ld = parseLocalDecls();
   if (!ld) return nullptr;
 
-  auto sl = parseStmtList();
-  if (!sl) return nullptr;
+  // auto sl = parseStmtList();
+  // if (!sl) return nullptr;
 
   if (CurTok.type != RBRA) return nullptr;
   // Consumer the } token.
   getNextToken();
 
-  return std::make_unique<BlockNode>(std::move(ld), std::move(sl));
+  // return std::make_unique<BlockNode>(std::move(ld), std::move(sl));
+  return nullptr;
+}
+
+static std::unique_ptr<IfStmtNode> parseIfStmt() 
+{
+  return nullptr;
+}
+
+static std::unique_ptr<WhileStmtNode> parseWhileStmt() 
+{
+  return nullptr;
+}
+
+static std::unique_ptr<ReturnStmtNode> parseReturnStmt() 
+{
+  return nullptr;
+}
+
+static std::unique_ptr<StmtNode> parseStmt() 
+{
+  return nullptr;
+}
+
+static std::unique_ptr<StmtListNode> parseStmtList() 
+{  
+  if (auto s = parseStmt())
+  {
+    auto sl = parseStmtList();
+    if (!sl) return nullptr;
+
+    return std::make_unique<StmtListNode>(std::move(s), std::move(sl));
+  }
+
+  return std::make_unique<StmtListNode>();
 }
 
 static std::unique_ptr<FunDeclNode> parseFunDecl() 
