@@ -71,8 +71,6 @@ static std::unique_ptr<Module> TheModule;
 //===----------------------------------------------------------------------===//
 
 int main(int argc, char **argv) {
-  FILE *pFile;
-
   if (argc == 2) {
     pFile = fopen(argv[1], "r");
     if (pFile == NULL)
