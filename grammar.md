@@ -33,10 +33,10 @@ param_list ::= param "," param_list
 
 param ::= var_type IDENT
 
-block ::= "{" local_decls stmt_list "}"
-
 local_decls ::= var_decl local_decls
               | epsilon
+              
+block ::= "{" local_decls stmt_list "}"
 
 stmt_list ::= stmt stmt_list
             | epsilon
