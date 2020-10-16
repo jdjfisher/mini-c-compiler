@@ -17,7 +17,10 @@
 // Application imports
 #include "ast.h"
 
+TOKEN getCurrentToken();
+TOKEN getNextToken();
 void parse();
+
 static ProgramNode* parseProgram();
 static ExternListNode* parseExternList();
 static ExternNode* parseExtern();

@@ -41,8 +41,8 @@ static TOKEN returnTok(std::string lexVal, int tok_type) {
 
 // Read file line by line -- or look for \n and if found add 1 to line number
 // and reset column number to 0
-/// gettok - Return the next token from standard input.
-TOKEN gettok() {
+/// lexToken - Return the next token from standard input.
+TOKEN lexToken() {
 
   static int LastChar = ' ';
   static int NextChar = ' ';
@@ -254,7 +254,7 @@ TOKEN gettok() {
       } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
 
       if (LastChar != EOF)
-        return gettok();
+        return lexToken();
     } else
       return returnTok("/", DIV);
   }

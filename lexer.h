@@ -73,4 +73,4 @@ struct TOKEN {
   int columnNo;
 };
 
-TOKEN gettok();
+TOKEN lexToken();

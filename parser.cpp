@@ -14,10 +14,15 @@
 static TOKEN CurTok;
 static std::deque<TOKEN> tok_buffer;
 
-static TOKEN getNextToken() 
+TOKEN getCurrentToken() 
+{
+  return CurTok;
+}
+
+TOKEN getNextToken() 
 {
   if (tok_buffer.size() == 0)
-    tok_buffer.push_back(gettok());
+    tok_buffer.push_back(lexToken());
 
   CurTok = tok_buffer.front();
   tok_buffer.pop_front();
@@ -25,14 +30,14 @@ static TOKEN getNextToken()
   return CurTok;
 }
 
-static void putBackToken(TOKEN tok) 
+static void putBackToken(TOKEN token) 
 { 
   // if (CurTok != NULL) 
-  {
+  // {
     tok_buffer.push_front(CurTok); 
-  }
+  // }
 
-  CurTok = tok;
+  CurTok = token;
 }
 
 void parse() 
