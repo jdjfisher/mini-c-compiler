@@ -36,8 +36,6 @@ param ::= var_type IDENT
 local_decls ::= var_decl local_decls
               | epsilon
               
-block_stmt ::= "{" local_decls stmt_list "}"
-
 stmt_list ::= stmt stmt_list
             | epsilon
 
@@ -49,6 +47,8 @@ stmt ::= expr_stmt
 
 expr_stmt ::= expr ";"
             | ";"
+
+block_stmt ::= "{" local_decls stmt_list "}"
 
 while_stmt ::= "while" "(" expr ")" stmt
 

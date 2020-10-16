@@ -81,19 +81,19 @@ int main(int argc, char **argv) {
   }
 
   // Get the first token.
-  TOKEN t = getNextToken();
-  while (t.type != EOF_TOK) 
-  {
-    fprintf(stderr, "Token: %s with type %d\n", t.lexeme.c_str(), t.type);
-    t = getNextToken();
-  }
-  fprintf(stderr, "Lexer Finished\n");
+  // TOKEN t = getNextToken();
+  // while (t.type != EOF_TOK) 
+  // {
+  //   fprintf(stderr, "Token: %s with type %d\n", t.lexeme.c_str(), t.type);
+  //   t = getNextToken();
+  // }
+  // fprintf(stderr, "Lexer Finished\n");
 
   // Make the module, which holds all the code.
   TheModule = std::make_unique<Module>("mini-c", TheContext);
 
   // Run the parser now.
-  // parse();
+  parse();
   fprintf(stderr, "Parsing Finished\n");
 
   //********************* Start printing final IR **************************

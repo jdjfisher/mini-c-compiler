@@ -70,10 +70,10 @@ class ParamsNode;
 class ParamListNode;
 class ParamNode;
 class LocalDeclsNode;
-class BlockStmtNode;
 class StmtListNode;
 class StmtNode;
 class ExprStmtNode;
+class BlockStmtNode;
 class WhileStmtNode;
 class IfStmtNode;
 class ElseStmtNode;
@@ -346,25 +346,6 @@ class LocalDeclsNode : public Node
     };
 };
 
-// BlockStmtNode - Class for ...
-class BlockStmtNode : public Node 
-{
-  private:
-    LocalDeclsNode* lds;
-    StmtListNode* sl;
-
-  public:
-    BlockStmtNode(LocalDeclsNode* lds, StmtListNode* sl) : lds(lds), sl(sl) {}
-    virtual llvm::Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string() const override
-    {
-      return "BlockStmtNode";
-    };
-};
-
 // StmtListNode - Class for ...
 class StmtListNode : public Node 
 {
@@ -386,29 +367,10 @@ class StmtListNode : public Node
 };
 
 // StmtNode - Class for ...
-class StmtNode : public Node 
-{
-  private:
-    ExprStmtNode* es;
-    BlockStmtNode* bs;
-    IfStmtNode* is;
-    WhileStmtNode* ws;
-    // TODO: ...
-
-  public:
-    StmtNode() {}
-    virtual llvm::Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string() const override
-    {
-      return "StmtNode";
-    };
-};
+class StmtNode : public Node {};
 
 // ExprStmtNode - Class for ...
-class ExprStmtNode : public Node 
+class ExprStmtNode : public StmtNode 
 {
   private:
     ExprNode* e;
@@ -425,8 +387,28 @@ class ExprStmtNode : public Node
     };
 };
 
+
+// BlockStmtNode - Class for ...
+class BlockStmtNode : public StmtNode 
+{
+  private:
+    LocalDeclsNode* lds;
+    StmtListNode* sl;
+
+  public:
+    BlockStmtNode(LocalDeclsNode* lds, StmtListNode* sl) : lds(lds), sl(sl) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "BlockStmtNode";
+    };
+};
+
 // WhileStmtNode - Class for ...
-class WhileStmtNode : public Node 
+class WhileStmtNode : public StmtNode 
 {
   private:
     ExprNode* e;
@@ -445,7 +427,7 @@ class WhileStmtNode : public Node
 };
 
 // IfStmtNode - Class for ...
-class IfStmtNode : public Node 
+class IfStmtNode : public StmtNode 
 {
   private:
     ExprNode* e;
@@ -465,13 +447,13 @@ class IfStmtNode : public Node
 };
 
 // ElseStmtNode - Class for ...
-class ElseStmtNode : public Node 
+class ElseStmtNode : public StmtNode 
 {
   private:
     BlockStmtNode* bs;
 
   public:
-    ElseStmtNode(BlockStmtNode* bs) : bs(bs) {}
+    ElseStmtNode(BlockStmtNode* bs = nullptr) : bs(bs) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -483,7 +465,7 @@ class ElseStmtNode : public Node
 };
 
 // ReturnStmtNode - Class for ...
-class ReturnStmtNode : public Node 
+class ReturnStmtNode : public StmtNode 
 {
   private:
     ExprNode* e;
@@ -526,7 +508,7 @@ class ArgListNode : public Node
     ArgListNode* al;
 
   public:
-    ArgListNode(ExprNode* e, ArgListNode* al) : e(e), al(al) {}
+    ArgListNode(ExprNode* e, ArgListNode* al = nullptr) : e(e), al(al) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;

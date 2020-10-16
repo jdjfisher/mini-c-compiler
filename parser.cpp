@@ -135,7 +135,7 @@ static VarDeclNode* parseVarDecl()
 
   if (CurTok.type != IDENT) return nullptr;
   TOKEN t = CurTok;
-  // Consumer the IDENT token.
+  // Consume the IDENT token.
   getNextToken();
 
   return new VarDeclNode(vt, t);
@@ -157,16 +157,17 @@ static VarTypeNode* parseVarType()
 {
   switch (CurTok.type)
   {
-  case BOOL_TOK:
-  case INT_TOK:
-  case FLOAT_TOK: {
-    TOKEN t = CurTok;
-    // Consume the TYPE token.
-    getNextToken();
-    return new VarTypeNode(t);
-  }
-  default:
-    return nullptr;
+    case BOOL_TOK:
+    case INT_TOK:
+    case FLOAT_TOK: 
+    {
+      TOKEN t = CurTok;
+      // Consume the TYPE token.
+      getNextToken();
+      return new VarTypeNode(t);
+    }
+    default:
+      return nullptr;
   }
 }
 
@@ -177,24 +178,24 @@ static FunDeclNode* parseFunDecl()
 
   if (CurTok.type != IDENT) return nullptr;
   TOKEN t = CurTok;
-  // Consumer the IDENT token.
+  // Consume the IDENT token.
   getNextToken();
 
   if (CurTok.type != LPAR) return nullptr;
-  // Consumer the ( token.
+  // Consume the ( token.
   getNextToken();
 
   auto p = parseParams();
   if (!p) return nullptr;
 
   if (CurTok.type != RPAR) return nullptr;
-  // Consumer the ) token.
+  // Consume the ) token.
   getNextToken(); 
 
-  auto b = parseBlockStmt();
-  if (!b) return nullptr;
+  auto bs = parseBlockStmt();
+  if (!bs) return nullptr;
 
-  return new FunDeclNode(ft, t, p, b);
+  return new FunDeclNode(ft, t, p, bs);
 }
 
 static ParamsNode* parseParams() 
@@ -254,25 +255,6 @@ static LocalDeclsNode* parseLocalDecls()
   return new LocalDeclsNode();
 }
 
-static BlockStmtNode* parseBlockStmt() 
-{
-  if (CurTok.type != LBRA) return nullptr;
-  // Consumer the { token.
-  getNextToken();
-
-  auto ld = parseLocalDecls();
-  if (!ld) return nullptr;
-
-  auto sl = parseStmtList();
-  if (!sl) return nullptr;
-
-  if (CurTok.type != RBRA) return nullptr;
-  // Consumer the } token.
-  getNextToken();
-
-  return new BlockStmtNode(ld, sl);
-}
-
 static StmtListNode* parseStmtList() 
 {  
   if (auto s = parseStmt())
@@ -288,75 +270,374 @@ static StmtListNode* parseStmtList()
 
 static StmtNode* parseStmt() 
 {
+  if (auto es = parseExprStmt())
+  {
+    return es;
+  }
+  else if (auto bs = parseBlockStmt())
+  {
+    return bs;
+  }
+  else if (auto is = parseIfStmt())
+  {
+    return is;
+  }
+  else if (auto ws = parseWhileStmt())
+  {
+    return ws;
+  }
+  else if (auto rs = parseReturnStmt())
+  {
+    return rs;
+  }
+
   return nullptr;
 }
 
 static ExprStmtNode* parseExprStmt() 
 {
-  return nullptr;
+  auto e = parseExpr();
+
+  if (CurTok.type != SC) return nullptr;
+  // Consume the ; token.
+  getNextToken();
+
+  return new ExprStmtNode(e);
 }
 
-static IfStmtNode* parseIfStmt() 
+static BlockStmtNode* parseBlockStmt() 
 {
-  return nullptr;
+  if (CurTok.type != LBRA) return nullptr;
+  // Consume the { token.
+  getNextToken();
+
+  auto ld = parseLocalDecls();
+  if (!ld) return nullptr;
+
+  auto sl = parseStmtList();
+  if (!sl) return nullptr;
+
+  if (CurTok.type != RBRA) return nullptr;
+  // Consume the } token.
+  getNextToken();
+
+  return new BlockStmtNode(ld, sl);
 }
 
 static WhileStmtNode* parseWhileStmt() 
 {
-  return nullptr;
+  if (CurTok.type != WHILE) return nullptr;
+  // Consume the WHILE token.
+  getNextToken();
+
+  if (CurTok.type != LPAR) return nullptr;
+  // Consume the ( token.
+  getNextToken();
+
+  auto e = parseExpr();
+  if (!e) return nullptr;
+
+  if (CurTok.type != RPAR) return nullptr;
+  // Consume the ) token.
+  getNextToken();
+
+  auto s = parseStmt();
+  if (!s) return nullptr;
+
+  return new WhileStmtNode(e, s);
+}
+
+static IfStmtNode* parseIfStmt() 
+{
+  if (CurTok.type != IF) return nullptr;
+  // Consume the IF token.
+  getNextToken();
+
+  if (CurTok.type != LPAR) return nullptr;
+  // Consume the ( token.
+  getNextToken();
+
+  auto e = parseExpr();
+  if (!e) return nullptr;
+
+  if (CurTok.type != RPAR) return nullptr;
+  // Consume the ) token.
+  getNextToken();
+
+  auto bs = parseBlockStmt();
+  if (!bs) return nullptr;
+
+  auto es = parseElseStmt();
+  if (!es) return nullptr;
+
+  return new IfStmtNode(e, bs, es);
+}
+
+static ElseStmtNode* parseElseStmt() 
+{
+  if (CurTok.type == ELSE)
+  {
+    // Consume the ELSE token.
+    getNextToken();
+
+    return new ElseStmtNode(parseBlockStmt());
+  } 
+
+  return new ElseStmtNode();
 }
 
 static ReturnStmtNode* parseReturnStmt() 
 {
-  return nullptr;
+  if (CurTok.type != RETURN) return nullptr;
+  // Consume the RETURN token.
+  getNextToken();
+
+  auto e = parseExpr();
+  if (!e) return nullptr;
+
+  if (CurTok.type != SC) return nullptr;
+  // Consume the ; token.
+  getNextToken();
+
+  return new ReturnStmtNode(e);
 }
 
 static ArgsNode* parseArgs()
 {
-  return nullptr;
+  return new ArgsNode(parseArgList());
 }
 
 static ArgListNode* parseArgList()
 {
-  return nullptr;
+  auto e = parseExpr();
+  if (!e) return nullptr;
+
+  if (CurTok.type == COMMA)
+  {
+    // Consume the , token.
+    getNextToken();
+
+    auto al = parseArgList();
+    if (!al) return nullptr;
+
+    return new ArgListNode(e, al);
+  }
+
+  return new ArgListNode(e);
 }
 
 static ExprNode* parseExpr()
 {
-  return nullptr;
+  // Store the current token, look-ahead at the next.
+  TOKEN ct = CurTok;
+  TOKEN la = getNextToken();
+
+  if (ct.type == IDENT && la.type == ASSIGN)
+  {
+    // Consume the = token.
+    getNextToken();
+
+    auto e = parseExpr();
+    if (!e) return nullptr;
+
+    return new ExprNode(ct, e); 
+  }
+  else
+  {
+    // Revert the look-ahead
+    putBackToken(ct);
+
+    auto d = parseDisj();
+    if (!d) return nullptr;
+
+    return new ExprNode(d); 
+  }
 }
 
 static DisjNode* parseDisj()
 {
-  return nullptr;
+  auto c = parseConj();
+  if (!c) return nullptr;
+
+  if (CurTok.type == OR) 
+  {
+    // Consume the || token.
+    getNextToken();
+
+    auto d = parseDisj();
+    if (!d) return nullptr;
+
+    return new DisjNode(c, d);
+  }
+
+  return new DisjNode(c);
 }
 
 static ConjNode* parseConj()
 {
-  return nullptr;
+  auto e = parseEqual();
+  if (!e) return nullptr;
+
+  if (CurTok.type == OR) 
+  {
+    // Consume the || token.
+    getNextToken();
+
+    auto c = parseConj();
+    if (!c) return nullptr;
+
+    return new ConjNode(e, c);
+  }
+
+  return new ConjNode(e);
 }
 
 static EqualNode* parseEqual()
 {
-  return nullptr;
+  auto o = parseOrder();
+  if (!o) return nullptr;
+
+  if (CurTok.type == EQ || CurTok.type == NE) 
+  {
+    // Consume the token.
+    TOKEN op = CurTok;
+    getNextToken();
+
+    auto e = parseEqual();
+    if (!e) return nullptr;
+
+    return new EqualNode(o, op, e);
+  }
+
+  return new EqualNode(o);
 }
 
 static OrderNode* parseOrder()
 {
-  return nullptr;
+  auto t = parseTerm();
+  if (!t) return nullptr;
+
+  if (CurTok.type == LE || CurTok.type == LT || 
+      CurTok.type == GE || CurTok.type == GT
+  ) 
+  {
+    // Consume the token.
+    TOKEN op = CurTok;
+    getNextToken();
+
+    auto o = parseOrder();
+    if (!o) return nullptr;
+
+    return new OrderNode(t, op, o);
+  }
+
+  return new OrderNode(t);
 }
 
 static TermNode* parseTerm()
 {
-  return nullptr;
+  auto f = parseFactor();
+  if (!f) return nullptr;
+
+  if (CurTok.type == PLUS || CurTok.type == MINUS) 
+  {
+    // Consume the token.
+    TOKEN op = CurTok;
+    getNextToken();
+
+    auto t = parseTerm();
+    if (!t) return nullptr;
+
+    return new TermNode(f, op, t);
+  }
+
+  return new TermNode(f);
 }
 
 static FactorNode* parseFactor()
 {
-  return nullptr;
+  auto l = parseLiteral();
+  if (!l) return nullptr;
+
+  if (CurTok.type == ASTERIX || CurTok.type == DIV || CurTok.type == MOD) 
+  {
+    // Consume the token.
+    TOKEN op = CurTok;
+    getNextToken();
+
+    auto f = parseFactor();
+    if (!f) return nullptr;
+
+    return new FactorNode(l, op, f);
+  }
+
+  return new FactorNode(l);
 }
 
 static LiteralNode* parseLiteral()
 {
-  return nullptr;
+  switch (CurTok.type)
+  {
+    case MINUS:
+    case NOT:
+    {
+      // Consume the token.
+      TOKEN op = CurTok;
+      getNextToken();
+
+      auto l = parseliteral();
+      if (!l) return nullptr; 
+
+      return new LiteralNode(); // TODO: ...
+    }
+    case LPAR:
+    {
+      // Consume the ( token.
+      getNextToken();
+
+      auto e = parseExpr();
+      if (!e) return nullptr;
+
+      if (CurTok.type != RPAR) return nullptr;
+      // Consume the ) token.
+      getNextToken();
+
+      return new LiteralNode(); // TODO: ...
+    }
+    case IDENT:
+    {
+      // Consume the IDENT token.
+      TOKEN id = CurTok;
+      getNextToken();
+
+      if (CurTok.type == LPAR)
+      {
+        // Consume the ( token.
+        getNextToken();
+
+        auto a = parseArgs();
+        if (!a) return nullptr;
+
+        if (CurTok.type != RPAR) return nullptr;
+        // Consume the ( token.
+        getNextToken();
+
+        return new LiteralNode(); // TODO: ...
+      }
+
+      return new LiteralNode(); // TODO: ...
+    }
+    case INT_LIT:
+    case FLOAT_LIT:
+    case BOOL_LIT:
+    {
+      // Consume the token.
+      TOKEN t = CurTok;
+      getNextToken();
+
+      return new LiteralNode() // TODO: ...
+    }
+    default:
+      return nullptr;
+  }
 }
