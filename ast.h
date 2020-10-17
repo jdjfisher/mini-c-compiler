@@ -88,9 +88,13 @@ class OrderNode;
 class TermNode;
 class FactorNode;
 class LiteralNode;
-// class IntNode;
-// class BoolNode;
-// class VariableNode;
+class UnaryNode;
+class ParenthesesNode; 
+class VariableNode;
+class CallNode;
+class IntNode;
+class FloatNode;
+class BoolNode;
 
 // ProgramNode - Class for ...
 class ProgramNode : public Node 
@@ -663,76 +667,147 @@ class FactorNode : public Node
 };
 
 // LiteralNode - Class for ...
-class LiteralNode : public Node 
+class LiteralNode : public Node {};
+
+// UnaryNode - Class for ...
+class UnaryNode : public LiteralNode 
 {
   private:
-    // TODO: ...
+    TOKEN op;
+    LiteralNode* l;
 
   public:
-    LiteralNode() {}
+    UnaryNode(TOKEN op, LiteralNode* l) : op(op), l(l) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
     };
     virtual std::string to_string() const override
     {
-      return "LiteralNode";
+      return "UnaryNode";
     };
 };
 
-// // VariableNode - Class for variable identifier references like sum, user_name
-// class VariableNode : public Node 
-// {
-//   private:
-//     std::string val;
-//     TOKEN tok;
+// ParenthesesNode - Class for ...
+class ParenthesesNode : public LiteralNode 
+{
+  private:
+    ExprNode* e;
 
-//   public:
-//     VariableNode(TOKEN tok, std::string val) : val(val), tok(tok) {}
-//     virtual llvm::Value *codegen() override
-//     {
-//       return NULL;
-//     };
-//     virtual std::string to_string() const override
-//     {
-//       return val;
-//     };
-// };
+  public:
+    ParenthesesNode(ExprNode* e) : e(e) {}
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "ParenthesesNode";
+    };
+};
 
-// // IntNode - Class for integer literals like 1, 2, 10,
-// class IntNode : public Node 
-// {
-//   private:
-//     int val;
-//     TOKEN tok;
+// VariableNode - Class for variable identifier references like sum, user_name
+class VariableNode : public LiteralNode 
+{
+  private:
+    std::string id;
 
-//   public:
-//     IntNode(TOKEN tok, int val) : val(val), tok(tok) {}
-//     virtual llvm::Value *codegen() override
-//     {
-//       return NULL;
-//     };
-//     virtual std::string to_string() const override
-//     {
-//       return std::to_string(val);
-//     };
-// };
+  public:
+    VariableNode(TOKEN tok)
+    {
+      id = tok.lexeme;
+    }
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "VariableNode";
+    };
+};
 
-// // BoolNode - Class for boolean literals true, false
-// class BoolNode : public Node 
-// {
-//   private:
-//     bool val;
-//     TOKEN tok;
+// CallNode - Class for ...
+class CallNode : public LiteralNode 
+{
+  private:
+    std::string id;
+    ArgsNode* a;
 
-//   public:
-//     BoolNode(TOKEN tok, bool val) : val(val), tok(tok) {}
-//     virtual llvm::Value *codegen() override
-//     {
-//       return NULL;
-//     };
-//     virtual std::string to_string() const override
-//     {
-//       return val ? "true" : "false";
-//     };
-// };
+  public:
+    CallNode(TOKEN tok, ArgsNode* a) : a(a)
+    {
+      id = tok.lexeme;
+    }
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "CallNode";
+    };
+};
+
+// IntNode - Class for integer literals like 1, 2, 10,
+class IntNode : public LiteralNode 
+{
+  private:
+    int val;
+
+  public:
+    IntNode(TOKEN tok)
+    {
+      val = std::stoi(tok.lexeme); 
+    }
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "IntNode";
+    };
+};
+
+// FloatNode - Class for floating point literals like ...
+class FloatNode : public LiteralNode 
+{
+  private:
+    float val;
+
+  public:
+    FloatNode(TOKEN tok)
+    {
+      val = std::stof(tok.lexeme); 
+    }
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "FloatNode";
+    };
+};
+
+// BoolNode - Class for boolean literals true, false
+class BoolNode : public LiteralNode 
+{
+  private:
+    bool val;
+
+  public:
+    BoolNode(TOKEN tok)
+    {
+      val = tok.lexeme == "true"; // TODO: check
+    }
+    virtual llvm::Value *codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string() const override
+    {
+      return "BoolNode";
+    };
+};

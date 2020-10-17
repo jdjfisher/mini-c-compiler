@@ -585,10 +585,10 @@ static LiteralNode* parseLiteral()
       TOKEN op = CurTok;
       getNextToken();
 
-      auto l = parseliteral();
+      auto l = parseLiteral();
       if (!l) return nullptr; 
 
-      return new LiteralNode(); // TODO: ...
+      return new UnaryNode(op, l);
     }
     case LPAR:
     {
@@ -602,7 +602,7 @@ static LiteralNode* parseLiteral()
       // Consume the ) token.
       getNextToken();
 
-      return new LiteralNode(); // TODO: ...
+      return new ParenthesesNode(e);
     }
     case IDENT:
     {
@@ -622,20 +622,34 @@ static LiteralNode* parseLiteral()
         // Consume the ( token.
         getNextToken();
 
-        return new LiteralNode(); // TODO: ...
+        return new CallNode(id, a);
       }
 
-      return new LiteralNode(); // TODO: ...
+      return new VariableNode(id);
     }
     case INT_LIT:
+    {
+      // Consume the token.
+      TOKEN t = CurTok;
+      getNextToken();
+
+      return new IntNode(t);
+    }
     case FLOAT_LIT:
+    {
+      // Consume the token.
+      TOKEN t = CurTok;
+      getNextToken();
+
+      return new FloatNode(t);
+    }
     case BOOL_LIT:
     {
       // Consume the token.
       TOKEN t = CurTok;
       getNextToken();
 
-      return new LiteralNode() // TODO: ...
+      return new BoolNode(t);
     }
     default:
       return nullptr;
