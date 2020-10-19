@@ -111,7 +111,8 @@ class ProgramNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ProgramNode"; // TODO: Stringify node recursively
+      return "Prog";
+      // return sprintf("<program>\n", el->to_string(), dl?dl->to_string():""); 
     };
 };
 
@@ -456,7 +457,7 @@ class ReturnStmtNode : public StmtNode
     ExprNode* e;
 
   public:
-    ReturnStmtNode(ExprNode* e) : e(e) {}
+    ReturnStmtNode(ExprNode* e = nullptr) : e(e) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -492,7 +493,7 @@ class ArgsNode : public Node
     ArgListNode* al;
 
   public:
-    ArgsNode(ArgListNode* al) : al(al) {}
+    ArgsNode(ArgListNode* al = nullptr) : al(al) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;

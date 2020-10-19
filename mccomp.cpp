@@ -60,11 +60,11 @@ static std::unique_ptr<Module> TheModule;
 // AST Printer
 //===----------------------------------------------------------------------===//
 
-// inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
-//                                      const Node &ast) {
-//   os << ast.to_string();
-//   return os;
-// }
+inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Node &ast)
+{
+  os << ast.to_string();
+  return os;
+}
 
 //===----------------------------------------------------------------------===//
 // Main driver code.
@@ -93,7 +93,8 @@ int main(int argc, char **argv) {
   TheModule = std::make_unique<Module>("mini-c", TheContext);
 
   // Run the parser now.
-  parse();
+  auto p = parse();
+  std::cout << "Out: " << p->to_string() << "\n"; 
   fprintf(stderr, "Parsing Finished\n");
 
   //********************* Start printing final IR **************************

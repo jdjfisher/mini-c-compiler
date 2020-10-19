@@ -24,8 +24,8 @@ var_type ::= "int"
 fun_type ::= "void"
             | var_type
 
-params ::= "void" 
-         | param_list
+params ::= param_list
+         | "void" 
          | epsilon
 
 param_list ::= param "," param_list
@@ -103,6 +103,9 @@ _factor ::= "*" literal _factor
 literal ::= "-" literal 
           | "!" literal
           | "(" expr ")"
-          | IDENT | IDENT "(" args ")"
-          | INT_LIT | FLOAT_LIT | BOOL_LIT
+          | IDENT 
+          | IDENT "(" args ")"
+          | INT_LIT 
+          | FLOAT_LIT 
+          | BOOL_LIT
 ```

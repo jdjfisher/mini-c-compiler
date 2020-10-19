@@ -19,7 +19,7 @@
 
 TOKEN getCurrentToken();
 TOKEN getNextToken();
-void parse();
+ProgramNode* parse();
 
 static ProgramNode* parseProgram();
 static ExternListNode* parseExternList();
