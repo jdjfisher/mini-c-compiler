@@ -15,17 +15,17 @@ decl ::= var_decl
 
 var_decl ::= var_type IDENT ";"
 
-fun_type ::= "void"
-            | var_type
+fun_decl ::= fun_type IDENT "(" params ")" block_stmt
 
 var_type ::= "int" 
            | "float" 
            | "bool"
 
-fun_decl ::= fun_type IDENT "(" params ")" block_stmt
+fun_type ::= "void"
+            | var_type
 
-params ::= param_list
-         | "void" 
+params ::= "void" 
+         | param_list
          | epsilon
 
 param_list ::= param "," param_list
@@ -39,14 +39,11 @@ local_decls ::= var_decl local_decls
 stmt_list ::= stmt stmt_list
             | epsilon
 
-stmt ::= expr_stmt
-       | block_stmt
+stmt ::= block_stmt
        | if_stmt
        | while_stmt
        | return_stmt
-
-expr_stmt ::= expr ";"
-            | ";"
+       | expr_stmt
 
 block_stmt ::= "{" local_decls stmt_list "}"
 
@@ -59,6 +56,9 @@ else_stmt ::= "else" block_stmt
 
 return_stmt ::= "return" ";"
               | "return" expr ";"
+
+expr_stmt ::= expr ";"
+            | ";"
 
 args ::= arg_list
        | epsilon

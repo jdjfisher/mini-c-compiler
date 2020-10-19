@@ -34,7 +34,7 @@ static void putBackToken(TOKEN token)
 { 
   // if (CurTok != NULL) 
   // {
-    tok_buffer.push_front(CurTok); 
+  tok_buffer.push_front(CurTok); 
   // }
 
   CurTok = token;
@@ -46,12 +46,21 @@ void parse()
   getNextToken();
 
   auto p = parseProgram();
+
+  std::cout << "Out: " << p->to_string() << "\n"; 
 }
 
 static ProgramNode* parseProgram() 
 {
-  auto el = parseExternList();
-  if (!el) return nullptr;
+  std::cout << "Parsing Program. Current token: " << CurTok.lexeme << "\n";
+
+  ExternListNode* el;
+
+  if (CurTok.type == EXTERN)
+  {
+    el = parseExternList();
+    if (!el) return nullptr;
+  }
 
   auto dl = parseDeclList();
   if (!dl) return nullptr;
@@ -61,17 +70,26 @@ static ProgramNode* parseProgram()
 
 static ExternListNode* parseExternList() 
 {
+  std::cout << "Parsing ExternList. Current token: " << CurTok.lexeme << "\n";
+
   auto e = parseExtern();
   if (!e) return nullptr;
 
-  auto el = parseExternList();
-  if (!el) return nullptr;
+  ExternListNode* el;
+
+  if (CurTok.type == EXTERN)
+  {
+    el = parseExternList();
+    if (!el) return nullptr;
+  }
 
   return new ExternListNode(e, el);
 }
 
 static ExternNode* parseExtern() 
 {
+  std::cout << "Parsing Extern. Current token: " << CurTok.lexeme << "\n";
+
   if (CurTok.type != EXTERN) return nullptr;
   // Consume the EXTERN token.
   getNextToken();
@@ -104,25 +122,47 @@ static ExternNode* parseExtern()
 
 static DeclListNode* parseDeclList() 
 {
+  std::cout << "Parsing DeclList. Current token: " << CurTok.lexeme << "\n";
+
   auto d = parseDecl();
   if (!d) return nullptr;
 
-  auto dl = parseDeclList();
-  if (!dl) return nullptr;
+  DeclListNode* dl;
+
+  if (CurTok.type == VOID_TOK  || CurTok.type == INT_TOK ||
+      CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
+  {
+    dl = parseDeclList();
+    if (!dl) return nullptr;
+  }
 
   return new DeclListNode(d, dl);
 }
 
-static DeclNode* parseDecl() 
+static DeclNode* parseDecl() // TODO: fix
 {
-  if (auto vd = parseVarDecl()) 
+  std::cout << "Parsing Decl. Current token: " << CurTok.lexeme << "\n";
+
+  TOKEN t1 = getCurrentToken();
+  TOKEN t2 = getNextToken();
+  TOKEN t3 = getNextToken();
+  putBackToken(t3);
+  putBackToken(t2);
+  putBackToken(t1);
+
+  if (t3.type == SC)
   {
+    auto vd = parseVarDecl();
+    if (!vd) return nullptr;
+
     return new DeclNode(vd);
   }
-
-  if (auto fd = parseFunDecl()) 
+  else if (t3.type == LPAR)
   {
-    return new DeclNode(fd);
+    auto fd = parseFunDecl();
+    if (!fd) return nullptr;
+
+    return new DeclNode(fd); 
   }
 
   return nullptr;
@@ -130,49 +170,27 @@ static DeclNode* parseDecl()
 
 static VarDeclNode* parseVarDecl() 
 {
+  std::cout << "Parsing VarDecl. Current token: " << CurTok.lexeme << "\n";
+
   auto vt = parseVarType();
   if (!vt) return nullptr;
 
   if (CurTok.type != IDENT) return nullptr;
-  TOKEN t = CurTok;
   // Consume the IDENT token.
+  TOKEN t = CurTok;
+  getNextToken();
+
+  if (CurTok.type != SC) return nullptr;
+  // Consume the ; token.
   getNextToken();
 
   return new VarDeclNode(vt, t);
 }
 
-static FunTypeNode* parseFunType() 
-{
-  if (CurTok.type == VOID_TOK) 
-  {
-    // Consume the VOID token.
-    getNextToken();
-    return new FunTypeNode();
-  }
-
-  return new FunTypeNode(parseVarType());
-}
-
-static VarTypeNode* parseVarType() 
-{
-  switch (CurTok.type)
-  {
-    case BOOL_TOK:
-    case INT_TOK:
-    case FLOAT_TOK: 
-    {
-      TOKEN t = CurTok;
-      // Consume the TYPE token.
-      getNextToken();
-      return new VarTypeNode(t);
-    }
-    default:
-      return nullptr;
-  }
-}
-
 static FunDeclNode* parseFunDecl() 
 {
+  std::cout << "Parsing FunDecl. Current token: " << CurTok.lexeme << "\n";
+
   auto ft = parseFunType();
   if (!ft) return nullptr;
 
@@ -183,7 +201,8 @@ static FunDeclNode* parseFunDecl()
 
   if (CurTok.type != LPAR) return nullptr;
   // Consume the ( token.
-  getNextToken();
+  getNextToken(); // TODO: Why does this call consume the token?
+  getNextToken(); 
 
   auto p = parseParams();
   if (!p) return nullptr;
@@ -198,27 +217,74 @@ static FunDeclNode* parseFunDecl()
   return new FunDeclNode(ft, t, p, bs);
 }
 
+static VarTypeNode* parseVarType() 
+{
+  std::cout << "Parsing VarType. Current token: " << CurTok.lexeme << "\n";
+
+  switch (CurTok.type)
+  {
+    case BOOL_TOK:
+    case INT_TOK:
+    case FLOAT_TOK: 
+    {
+      TOKEN t = CurTok;
+      // Consume the TYPE token.
+      getNextToken();
+
+      return new VarTypeNode(t);
+    }
+    default:
+      return nullptr;
+  }
+}
+
+static FunTypeNode* parseFunType() 
+{
+  std::cout << "Parsing FunType. Current token: " << CurTok.lexeme << "\n";
+
+  if (CurTok.type == VOID_TOK) 
+  {
+    // Consume the VOID token.
+    getNextToken();
+    return new FunTypeNode();
+  }
+
+  auto vt = parseVarType();
+  if (!vt) return nullptr;
+
+  return new FunTypeNode(vt);
+}
+
 static ParamsNode* parseParams() 
 {
-  auto pl = parseParamList();
-  
-  if (!pl && CurTok.type == VOID_TOK) 
+  std::cout << "Parsing Params. Current token: " << CurTok.lexeme << "\n";
+
+  if (CurTok.type == INT_TOK || CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
+  {
+    auto pl = parseParamList();
+    if (!pl) return nullptr;
+
+    return new ParamsNode(pl);
+  }
+  else if (CurTok.type == VOID_TOK) 
   {
     // Consume the void token.
     getNextToken();
   }
 
-  return new ParamsNode(pl);
+  return new ParamsNode();
 }
 
 static ParamListNode* parseParamList() 
 {
+  std::cout << "Parsing ParamList. Current token: " << CurTok.lexeme << "\n";
+
   auto p = parseParam();
   if (!p) return nullptr;
 
   if (CurTok.type == COMMA)
   {
-    // Consume the void token.
+    // Consume the , token.
     getNextToken();
 
     auto pl = parseParamList();
@@ -232,7 +298,10 @@ static ParamListNode* parseParamList()
 
 static ParamNode* parseParam() 
 {
+  std::cout << "Parsing Param. Current token: " << CurTok.lexeme << "\n";
+
   auto vt = parseVarType(); 
+  if (!vt) return nullptr;
 
   if (CurTok.type != IDENT) return nullptr;
   TOKEN t = CurTok;
@@ -244,6 +313,8 @@ static ParamNode* parseParam()
 
 static LocalDeclsNode* parseLocalDecls() 
 {
+  std::cout << "Parsing LocalDecls. Current token: " << CurTok.lexeme << "\n";
+
   if (auto vd = parseVarDecl()) 
   {
     auto ld = parseLocalDecls();
@@ -251,12 +322,14 @@ static LocalDeclsNode* parseLocalDecls()
 
     return new LocalDeclsNode(vd, ld);
   }
-
+  
   return new LocalDeclsNode();
 }
 
 static StmtListNode* parseStmtList() 
 {  
+  std::cout << "Parsing StmtList. Current token: " << CurTok.lexeme << "\n";
+
   if (auto s = parseStmt())
   {
     auto sl = parseStmtList();
@@ -270,11 +343,9 @@ static StmtListNode* parseStmtList()
 
 static StmtNode* parseStmt() 
 {
-  if (auto es = parseExprStmt())
-  {
-    return es;
-  }
-  else if (auto bs = parseBlockStmt())
+  std::cout << "Parsing Stmt. Current token: " << CurTok.lexeme << "\n";
+
+  if (auto bs = parseBlockStmt())
   {
     return bs;
   }
@@ -290,23 +361,18 @@ static StmtNode* parseStmt()
   {
     return rs;
   }
+  else if (auto es = parseExprStmt())
+  {
+    return es;
+  }
 
   return nullptr;
 }
 
-static ExprStmtNode* parseExprStmt() 
-{
-  auto e = parseExpr();
-
-  if (CurTok.type != SC) return nullptr;
-  // Consume the ; token.
-  getNextToken();
-
-  return new ExprStmtNode(e);
-}
-
 static BlockStmtNode* parseBlockStmt() 
 {
+  std::cout << "Parsing BlockStmt. Current token: " << CurTok.lexeme << "\n";
+
   if (CurTok.type != LBRA) return nullptr;
   // Consume the { token.
   getNextToken();
@@ -326,6 +392,8 @@ static BlockStmtNode* parseBlockStmt()
 
 static WhileStmtNode* parseWhileStmt() 
 {
+  std::cout << "Parsing WhileStmt. Current token: " << CurTok.lexeme << "\n";
+
   if (CurTok.type != WHILE) return nullptr;
   // Consume the WHILE token.
   getNextToken();
@@ -349,6 +417,8 @@ static WhileStmtNode* parseWhileStmt()
 
 static IfStmtNode* parseIfStmt() 
 {
+  std::cout << "Parsing IfStmt. Current token: " << CurTok.lexeme << "\n";
+
   if (CurTok.type != IF) return nullptr;
   // Consume the IF token.
   getNextToken();
@@ -375,6 +445,8 @@ static IfStmtNode* parseIfStmt()
 
 static ElseStmtNode* parseElseStmt() 
 {
+  std::cout << "Parsing ElseStmt. Current token: " << CurTok.lexeme << "\n";
+
   if (CurTok.type == ELSE)
   {
     // Consume the ELSE token.
@@ -388,6 +460,8 @@ static ElseStmtNode* parseElseStmt()
 
 static ReturnStmtNode* parseReturnStmt() 
 {
+  std::cout << "Parsing ReturnStmt. Current token: " << CurTok.lexeme << "\n";
+
   if (CurTok.type != RETURN) return nullptr;
   // Consume the RETURN token.
   getNextToken();
@@ -402,13 +476,30 @@ static ReturnStmtNode* parseReturnStmt()
   return new ReturnStmtNode(e);
 }
 
+static ExprStmtNode* parseExprStmt() 
+{
+  std::cout << "Parsing ExprStmt. Current token: " << CurTok.lexeme << "\n";
+
+  auto e = parseExpr();
+
+  if (CurTok.type != SC) return nullptr;
+  // Consume the ; token.
+  getNextToken();
+
+  return new ExprStmtNode(e);
+}
+
 static ArgsNode* parseArgs()
 {
+  std::cout << "Parsing Args. Current token: " << CurTok.lexeme << "\n";
+
   return new ArgsNode(parseArgList());
 }
 
 static ArgListNode* parseArgList()
 {
+  std::cout << "Parsing ArgList. Current token: " << CurTok.lexeme << "\n";
+
   auto e = parseExpr();
   if (!e) return nullptr;
 
@@ -428,6 +519,8 @@ static ArgListNode* parseArgList()
 
 static ExprNode* parseExpr()
 {
+  std::cout << "Parsing Expr. Current token: " << CurTok.lexeme << "\n";
+
   // Store the current token, look-ahead at the next.
   TOKEN ct = CurTok;
   TOKEN la = getNextToken();
@@ -456,6 +549,8 @@ static ExprNode* parseExpr()
 
 static DisjNode* parseDisj()
 {
+  std::cout << "Parsing Disj. Current token: " << CurTok.lexeme << "\n";
+
   auto c = parseConj();
   if (!c) return nullptr;
 
@@ -475,6 +570,8 @@ static DisjNode* parseDisj()
 
 static ConjNode* parseConj()
 {
+  std::cout << "Parsing Conj. Current token: " << CurTok.lexeme << "\n";
+
   auto e = parseEqual();
   if (!e) return nullptr;
 
@@ -494,6 +591,8 @@ static ConjNode* parseConj()
 
 static EqualNode* parseEqual()
 {
+  std::cout << "Parsing Equal. Current token: " << CurTok.lexeme << "\n";
+
   auto o = parseOrder();
   if (!o) return nullptr;
 
@@ -514,6 +613,8 @@ static EqualNode* parseEqual()
 
 static OrderNode* parseOrder()
 {
+  std::cout << "Parsing Order. Current token: " << CurTok.lexeme << "\n";
+
   auto t = parseTerm();
   if (!t) return nullptr;
 
@@ -536,6 +637,8 @@ static OrderNode* parseOrder()
 
 static TermNode* parseTerm()
 {
+  std::cout << "Parsing Term. Current token: " << CurTok.lexeme << "\n";
+
   auto f = parseFactor();
   if (!f) return nullptr;
 
@@ -556,6 +659,8 @@ static TermNode* parseTerm()
 
 static FactorNode* parseFactor()
 {
+  std::cout << "Parsing Factor. Current token: " << CurTok.lexeme << "\n";
+
   auto l = parseLiteral();
   if (!l) return nullptr;
 
@@ -576,6 +681,8 @@ static FactorNode* parseFactor()
 
 static LiteralNode* parseLiteral()
 {
+  std::cout << "Parsing Literal. Current token: " << CurTok.lexeme << "\n";
+
   switch (CurTok.type)
   {
     case MINUS:
