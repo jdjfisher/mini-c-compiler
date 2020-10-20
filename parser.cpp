@@ -27,8 +27,6 @@ TOKEN getNextToken()
   CurTok = tok_buffer.front();
   tok_buffer.pop_front();
 
-  std::cout << "Current token: " << CurTok.lexeme << ".\n";
-
   return CurTok;
 }
 
@@ -39,13 +37,10 @@ static void putBackToken(TOKEN token)
   tok_buffer.push_front(CurTok); 
   // }
 
-  std::cout << "Put token back: " << token.lexeme << ".\n";
-  std::cout << "Current token: " << CurTok.lexeme << ".\n";
-
   CurTok = token;
 }
 
-ProgramNode* parse() 
+std::unique_ptr<ProgramNode> parse() 
 {
   // Get the first token.
   getNextToken();
@@ -53,11 +48,9 @@ ProgramNode* parse()
   return parseProgram();
 }
 
-static ProgramNode* parseProgram() 
+static std::unique_ptr<ProgramNode> parseProgram() 
 {
-  std::cout << "Parsing Program.\n";
-
-  ExternListNode* el;
+  std::unique_ptr<ExternListNode> el;
 
   if (CurTok.type == EXTERN)
   {
@@ -68,14 +61,11 @@ static ProgramNode* parseProgram()
   auto dl = parseDeclList();
   if (!dl) return nullptr;
 
-  std::cout << "Parsed Program.\n";
-  return new ProgramNode(el, dl);
+  return std::make_unique<ProgramNode>(std::move(el), std::move(dl));
 }
 
-static ExternListNode* parseExternList() 
+static std::unique_ptr<ExternListNode> parseExternList() 
 {
-  std::cout << "Parsing ExternList.\n";
-
   auto e = parseExtern();
   if (!e) return nullptr;
 
@@ -84,18 +74,14 @@ static ExternListNode* parseExternList()
     auto el = parseExternList();
     if (!el) return nullptr;
 
-    std::cout << "Parsed ExternList.\n";
-    return new ExternListNode(e, el);
+    return std::make_unique<ExternListNode>(std::move(e), std::move(el));
   }
 
-  std::cout << "Parsed ExternList.\n";
-  return new ExternListNode(e);
+  return std::make_unique<ExternListNode>(std::move(e));
 }
 
-static ExternNode* parseExtern() 
+static std::unique_ptr<ExternNode> parseExtern() 
 {
-  std::cout << "Parsing Extern.\n";
-
   if (CurTok.type != EXTERN) return nullptr;
   // Consume the EXTERN token.
   getNextToken();
@@ -123,14 +109,11 @@ static ExternNode* parseExtern()
   // Consume the ; token.
   getNextToken();
 
-  std::cout << "Parsed Extern.\n";
-  return new ExternNode(ft, t, p);
+  return std::make_unique<ExternNode>(std::move(ft), std::move(p), t);
 }
 
-static DeclListNode* parseDeclList() 
+static std::unique_ptr<DeclListNode> parseDeclList() 
 {
-  std::cout << "Parsing DeclList.\n";
-
   auto d = parseDecl();
   if (!d) return nullptr;
 
@@ -140,18 +123,14 @@ static DeclListNode* parseDeclList()
     auto dl = parseDeclList();
     if (!dl) return nullptr;
 
-    std::cout << "Parsed DeclList.\n";
-    return new DeclListNode(d, dl);
+    return std::make_unique<DeclListNode>(std::move(d), std::move(dl));
   }
 
-  std::cout << "Parsed DeclList.\n";
-  return new DeclListNode(d);
+  return std::make_unique<DeclListNode>(std::move(d));
 }
 
-static DeclNode* parseDecl() // TODO: fix
+static std::unique_ptr<DeclNode> parseDecl() // TODO: fix
 {
-  std::cout << "Parsing Decl.\n";
-
   TOKEN t1 = getCurrentToken();
   TOKEN t2 = getNextToken();
   TOKEN t3 = getNextToken();
@@ -163,25 +142,21 @@ static DeclNode* parseDecl() // TODO: fix
     auto vd = parseVarDecl();
     if (!vd) return nullptr;
 
-    std::cout << "Parsed Decl.\n";
-    return new DeclNode(vd);
+    return std::make_unique<DeclNode>(std::move(vd));
   }
   else if (t3.type == LPAR)
   {
     auto fd = parseFunDecl();
     if (!fd) return nullptr;
 
-    std::cout << "Parsed Decl.\n";
-    return new DeclNode(fd); 
+    return std::make_unique<DeclNode>(std::move(fd)); 
   }
 
   return nullptr;
 }
 
-static VarDeclNode* parseVarDecl() 
+static std::unique_ptr<VarDeclNode> parseVarDecl() 
 {
-  std::cout << "Parsing VarDecl.\n";
-
   auto vt = parseVarType();
   if (!vt) return nullptr;
 
@@ -194,14 +169,11 @@ static VarDeclNode* parseVarDecl()
   // Consume the ; token.
   getNextToken();
 
-  std::cout << "Parsed VarDecl.\n";
-  return new VarDeclNode(vt, t);
+  return std::make_unique<VarDeclNode>(std::move(vt), std::move(t));
 }
 
-static FunDeclNode* parseFunDecl() 
+static std::unique_ptr<FunDeclNode> parseFunDecl() 
 {
-  std::cout << "Parsing FunDecl.\n";
-
   auto ft = parseFunType();
   if (!ft) return nullptr;
 
@@ -224,14 +196,11 @@ static FunDeclNode* parseFunDecl()
   auto bs = parseBlockStmt();
   if (!bs) return nullptr;
 
-  std::cout << "Parsed FunDecl.\n";
-  return new FunDeclNode(ft, t, p, bs);
+  return std::make_unique<FunDeclNode>(std::move(ft), std::move(p), std::move(bs), t);
 }
 
-static VarTypeNode* parseVarType() 
+static std::unique_ptr<VarTypeNode> parseVarType() 
 {
-  std::cout << "Parsing VarType.\n";
-
   switch (CurTok.type)
   {
     case BOOL_TOK:
@@ -242,45 +211,37 @@ static VarTypeNode* parseVarType()
       // Consume the TYPE token.
       getNextToken();
 
-      std::cout << "Parsed VarType.\n";
-      return new VarTypeNode(t);
+      return std::make_unique<VarTypeNode>(t);
     }
     default:
       return nullptr;
   }
 }
 
-static FunTypeNode* parseFunType() 
+static std::unique_ptr<FunTypeNode> parseFunType() 
 {
-  std::cout << "Parsing FunType.\n";
-
   if (CurTok.type == VOID_TOK) 
   {
     // Consume the VOID token.
     getNextToken();
 
-    std::cout << "Parsed FunType.\n";
-    return new FunTypeNode();
+    return std::make_unique<FunTypeNode>();
   }
 
   auto vt = parseVarType();
   if (!vt) return nullptr;
 
-  std::cout << "Parsed FunType.\n";
-  return new FunTypeNode(vt);
+  return std::make_unique<FunTypeNode>(std::move(vt));
 }
 
-static ParamsNode* parseParams() 
+static std::unique_ptr<ParamsNode> parseParams() 
 {
-  std::cout << "Parsing Params.\n";
-
   if (CurTok.type == INT_TOK || CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
   {
     auto pl = parseParamList();
     if (!pl) return nullptr;
 
-    std::cout << "Parsed Params.\n";
-    return new ParamsNode(pl);
+    return std::make_unique<ParamsNode>(std::move(pl));
   }
   else if (CurTok.type == VOID_TOK) 
   {
@@ -288,14 +249,11 @@ static ParamsNode* parseParams()
     getNextToken();
   }
 
-  std::cout << "Parsed Params.\n";
-  return new ParamsNode();
+  return std::make_unique<ParamsNode>();
 }
 
-static ParamListNode* parseParamList() 
+static std::unique_ptr<ParamListNode> parseParamList() 
 {
-  std::cout << "Parsing ParamList.\n";
-
   auto p = parseParam();
   if (!p) return nullptr;
 
@@ -307,18 +265,14 @@ static ParamListNode* parseParamList()
     auto pl = parseParamList();
     if (!pl) return nullptr;
 
-    std::cout << "Parsed ParamList.\n";
-    return new ParamListNode(p, pl);
+    return std::make_unique<ParamListNode>(std::move(p), std::move(pl));
   }
 
-  std::cout << "Parsed ParamList.\n";
-  return new ParamListNode(p);
+  return std::make_unique<ParamListNode>(std::move(p));
 }
 
-static ParamNode* parseParam() 
+static std::unique_ptr<ParamNode> parseParam() 
 {
-  std::cout << "Parsing Param.\n";
-
   auto vt = parseVarType(); 
   if (!vt) return nullptr;
 
@@ -327,13 +281,11 @@ static ParamNode* parseParam()
   // Consume the IDENT token.
   getNextToken();
 
-  return new ParamNode(vt, t);
+  return std::make_unique<ParamNode>(std::move(vt), std::move(t));
 }
 
-static LocalDeclsNode* parseLocalDecls() 
+static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
 {
-  std::cout << "Parsing LocalDecls.\n";
-
   if (CurTok.type == INT_TOK || CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
   {
     auto vd = parseVarDecl();
@@ -342,16 +294,14 @@ static LocalDeclsNode* parseLocalDecls()
     auto ld = parseLocalDecls();
     if (!ld) return nullptr;
 
-    return new LocalDeclsNode(vd, ld);
+    return std::make_unique<LocalDeclsNode>(std::move(vd), std::move(ld));
   }
   
-  return new LocalDeclsNode();
+  return std::make_unique<LocalDeclsNode>();
 }
 
-static StmtListNode* parseStmtList() 
+static std::unique_ptr<StmtListNode> parseStmtList() 
 {  
-  std::cout << "Parsing StmtList.\n";
-
   switch (CurTok.type)
   {
     case LBRA:
@@ -372,17 +322,15 @@ static StmtListNode* parseStmtList()
       auto sl = parseStmtList();
       if (!sl) return nullptr;
 
-      return new StmtListNode(s, sl);
+      return std::make_unique<StmtListNode>(std::move(s), std::move(sl));
     }
     default:
-      return new StmtListNode();
+      return std::make_unique<StmtListNode>();
   }
 }
 
-static StmtNode* parseStmt() 
+static std::unique_ptr<StmtNode> parseStmt() 
 {
-  std::cout << "Parsing Stmt.\n";
-
   switch (CurTok.type)
   {
     case LBRA:
@@ -416,10 +364,8 @@ static StmtNode* parseStmt()
   }
 }
 
-static BlockStmtNode* parseBlockStmt() 
+static std::unique_ptr<BlockStmtNode> parseBlockStmt() 
 {
-  std::cout << "Parsing BlockStmt.\n";
-
   if (CurTok.type != LBRA) return nullptr;
   // Consume the { token.
   getNextToken();
@@ -434,13 +380,11 @@ static BlockStmtNode* parseBlockStmt()
   // Consume the } token.
   getNextToken();
 
-  return new BlockStmtNode(ld, sl);
+  return std::make_unique<BlockStmtNode>(std::move(ld), std::move(sl));
 }
 
-static WhileStmtNode* parseWhileStmt() 
+static std::unique_ptr<WhileStmtNode> parseWhileStmt() 
 {
-  std::cout << "Parsing WhileStmt.\n";
-
   if (CurTok.type != WHILE) return nullptr;
   // Consume the WHILE token.
   getNextToken();
@@ -459,13 +403,11 @@ static WhileStmtNode* parseWhileStmt()
   auto s = parseStmt();
   if (!s) return nullptr;
 
-  return new WhileStmtNode(e, s);
+  return std::make_unique<WhileStmtNode>(std::move(e), std::move(s));
 }
 
-static IfStmtNode* parseIfStmt() 
+static std::unique_ptr<IfStmtNode> parseIfStmt() 
 {
-  std::cout << "Parsing IfStmt.\n";
-
   if (CurTok.type != IF) return nullptr;
   // Consume the IF token.
   getNextToken();
@@ -487,13 +429,11 @@ static IfStmtNode* parseIfStmt()
   auto es = parseElseStmt();
   if (!es) return nullptr;
 
-  return new IfStmtNode(e, bs, es);
+  return std::make_unique<IfStmtNode>(std::move(e), std::move(bs), std::move(es));
 }
 
-static ElseStmtNode* parseElseStmt() 
+static std::unique_ptr<ElseStmtNode> parseElseStmt() 
 {
-  std::cout << "Parsing ElseStmt.\n";
-
   if (CurTok.type == ELSE)
   {
     // Consume the ELSE token.
@@ -502,16 +442,14 @@ static ElseStmtNode* parseElseStmt()
     auto bs = parseBlockStmt();
     if (!bs) return nullptr;
 
-    return new ElseStmtNode(bs);
+    return std::make_unique<ElseStmtNode>(std::move(bs));
   } 
 
-  return new ElseStmtNode();
+  return std::make_unique<ElseStmtNode>();
 }
 
-static ReturnStmtNode* parseReturnStmt() 
+static std::unique_ptr<ReturnStmtNode> parseReturnStmt() 
 {
-  std::cout << "Parsing ReturnStmt.\n";
-
   if (CurTok.type != RETURN) return nullptr;
   // Consume the RETURN token.
   getNextToken();
@@ -521,8 +459,7 @@ static ReturnStmtNode* parseReturnStmt()
     // Consume the ; token.
     getNextToken();
 
-    std::cout << "Parsed ReturnStmt.\n";
-    return new ReturnStmtNode();
+    return std::make_unique<ReturnStmtNode>();
   }
 
   auto e = parseExpr();
@@ -532,21 +469,17 @@ static ReturnStmtNode* parseReturnStmt()
   // Consume the ; token.
   getNextToken();
 
-  std::cout << "Parsed ReturnStmt.\n";
-  return new ReturnStmtNode(e);
+  return std::make_unique<ReturnStmtNode>(std::move(e));
 }
 
-static ExprStmtNode* parseExprStmt() 
+static std::unique_ptr<ExprStmtNode> parseExprStmt() 
 {
-  std::cout << "Parsing ExprStmt.\n";
-
   if (CurTok.type == SC)
   {
     // Consume the ; token.
     getNextToken();
   
-    std::cout << "Parsed ExprStmt.\n";
-    return new ExprStmtNode();
+    return std::make_unique<ExprStmtNode>();
   }
 
   auto e = parseExpr();
@@ -556,14 +489,11 @@ static ExprStmtNode* parseExprStmt()
   // Consume the ; token.
   getNextToken();
 
-  std::cout << "Parsed ExprStmt.\n";
-  return new ExprStmtNode(e);
+  return std::make_unique<ExprStmtNode>(std::move(e));
 }
 
-static ArgsNode* parseArgs()
+static std::unique_ptr<ArgsNode> parseArgs()
 {
-  std::cout << "Parsing Args.\n";
-
   switch (CurTok.type)
   {
     case IDENT:  // FIRST(<expr>)
@@ -576,19 +506,15 @@ static ArgsNode* parseArgs()
       auto al = parseArgList();
       if (!al) return nullptr;
 
-      std::cout << "Parsed Args.\n";
-      return new ArgsNode(al);
+      return std::make_unique<ArgsNode>(std::move(al));
     }
     default:
-      std::cout << "Parsed Args.\n";
-      return new ArgsNode();
+      return std::make_unique<ArgsNode>();
   }
 }
 
-static ArgListNode* parseArgList()
+static std::unique_ptr<ArgListNode> parseArgList()
 {
-  std::cout << "Parsing ArgList.\n";
-
   auto e = parseExpr();
   if (!e) return nullptr;
 
@@ -600,18 +526,14 @@ static ArgListNode* parseArgList()
     auto al = parseArgList();
     if (!al) return nullptr;
 
-    std::cout << "Parsed Args.\n";
-    return new ArgListNode(e, al);
+    return std::make_unique<ArgListNode>(std::move(e), std::move(al));
   }
 
-  std::cout << "Parsed Args.\n";
-  return new ArgListNode(e);
+  return std::make_unique<ArgListNode>(std::move(e));
 }
 
-static ExprNode* parseExpr()
+static std::unique_ptr<ExprNode> parseExpr()
 {
-  std::cout << "Parsing Expr.\n";
-
   // Store the current token, look-ahead at the next.
   TOKEN ot = CurTok;
   TOKEN ct = getNextToken();
@@ -624,8 +546,7 @@ static ExprNode* parseExpr()
     auto e = parseExpr();
     if (!e) return nullptr;
 
-    std::cout << "Parsed Expr.\n";
-    return new ExprNode(ot, e); 
+    return std::make_unique<ExprNode>(ot, std::move(e)); 
   }
   else
   {
@@ -635,15 +556,12 @@ static ExprNode* parseExpr()
     auto d = parseDisj();
     if (!d) return nullptr;
 
-    std::cout << "Parsed Expr.\n";
-    return new ExprNode(d); 
+    return std::make_unique<ExprNode>(std::move(d)); 
   }
 }
 
-static DisjNode* parseDisj()
+static std::unique_ptr<DisjNode> parseDisj()
 {
-  std::cout << "Parsing Disj.\n";
-
   auto c = parseConj();
   if (!c) return nullptr;
 
@@ -655,18 +573,14 @@ static DisjNode* parseDisj()
     auto d = parseDisj();
     if (!d) return nullptr;
 
-    std::cout << "Parsed Disj.\n";
-    return new DisjNode(c, d);
+    return std::make_unique<DisjNode>(std::move(c), std::move(d));
   }
 
-  std::cout << "Parsed Disj.\n";
-  return new DisjNode(c);
+  return std::make_unique<DisjNode>(std::move(c));
 }
 
-static ConjNode* parseConj()
+static std::unique_ptr<ConjNode> parseConj()
 {
-  std::cout << "Parsing Conj.\n";
-
   auto e = parseEqual();
   if (!e) return nullptr;
 
@@ -678,18 +592,14 @@ static ConjNode* parseConj()
     auto c = parseConj();
     if (!c) return nullptr;
 
-    std::cout << "Parsed Conj.\n";
-    return new ConjNode(e, c);
+    return std::make_unique<ConjNode>(std::move(e), std::move(c));
   }
 
-  std::cout << "Parsed Conj.\n";
-  return new ConjNode(e);
+  return std::make_unique<ConjNode>(std::move(e));
 }
 
-static EqualNode* parseEqual()
+static std::unique_ptr<EqualNode> parseEqual()
 {
-  std::cout << "Parsing Equal.\n";
-
   auto o = parseOrder();
   if (!o) return nullptr;
 
@@ -702,18 +612,14 @@ static EqualNode* parseEqual()
     auto e = parseEqual();
     if (!e) return nullptr;
 
-    std::cout << "Parsed Eq.\n";
-    return new EqualNode(o, op, e);
+    return std::make_unique<EqualNode>(std::move(o), std::move(e), op);
   }
 
-  std::cout << "Parsed Eq.\n";
-  return new EqualNode(o);
+  return std::make_unique<EqualNode>(std::move(o));
 }
 
-static OrderNode* parseOrder()
+static std::unique_ptr<OrderNode> parseOrder()
 {
-  std::cout << "Parsing Order.\n";
-
   auto t = parseTerm();
   if (!t) return nullptr;
 
@@ -728,16 +634,14 @@ static OrderNode* parseOrder()
     auto o = parseOrder();
     if (!o) return nullptr;
 
-    return new OrderNode(t, op, o);
+    return std::make_unique<OrderNode>(std::move(t), std::move(o), op);
   }
 
-  return new OrderNode(t);
+  return std::make_unique<OrderNode>(std::move(t));
 }
 
-static TermNode* parseTerm()
+static std::unique_ptr<TermNode> parseTerm()
 {
-  std::cout << "Parsing Term.\n";
-
   auto f = parseFactor();
   if (!f) return nullptr;
 
@@ -750,16 +654,14 @@ static TermNode* parseTerm()
     auto t = parseTerm();
     if (!t) return nullptr;
 
-    return new TermNode(f, op, t);
+    return std::make_unique<TermNode>(std::move(f), std::move(t), op);
   }
 
-  return new TermNode(f);
+  return std::make_unique<TermNode>(std::move(f));
 }
 
-static FactorNode* parseFactor()
+static std::unique_ptr<FactorNode> parseFactor()
 {
-  std::cout << "Parsing Factor.\n";
-
   auto l = parseLiteral();
   if (!l) return nullptr;
 
@@ -772,16 +674,14 @@ static FactorNode* parseFactor()
     auto f = parseFactor();
     if (!f) return nullptr;
 
-    return new FactorNode(l, op, f);
+    return std::make_unique<FactorNode>(std::move(l), std::move(f), op);
   }
 
-  return new FactorNode(l);
+  return std::make_unique<FactorNode>(std::move(l));
 }
 
-static LiteralNode* parseLiteral()
+static std::unique_ptr<LiteralNode> parseLiteral()
 {
-  std::cout << "Parsing Literal.\n";
-
   switch (CurTok.type)
   {
     case MINUS:
@@ -794,7 +694,7 @@ static LiteralNode* parseLiteral()
       auto l = parseLiteral();
       if (!l) return nullptr; 
 
-      return new UnaryNode(op, l);
+      return std::make_unique<UnaryNode>(op, std::move(l));
     }
     case LPAR:
     {
@@ -808,7 +708,7 @@ static LiteralNode* parseLiteral()
       // Consume the ) token.
       getNextToken();
 
-      return new ParenthesesNode(e);
+      return std::make_unique<ParenthesesNode>(std::move(e));
     }
     case IDENT:
     {
@@ -828,10 +728,10 @@ static LiteralNode* parseLiteral()
         // Consume the ( token.
         getNextToken();
 
-        return new CallNode(id, a);
+        return std::make_unique<CallNode>(id, std::move(a));
       }
 
-      return new VariableNode(id);
+      return std::make_unique<VariableNode>(id);
     }
     case INT_LIT:
     {
@@ -839,7 +739,7 @@ static LiteralNode* parseLiteral()
       TOKEN t = CurTok;
       getNextToken();
 
-      return new IntNode(t);
+      return std::make_unique<IntNode>(t);
     }
     case FLOAT_LIT:
     {
@@ -847,7 +747,7 @@ static LiteralNode* parseLiteral()
       TOKEN t = CurTok;
       getNextToken();
 
-      return new FloatNode(t);
+      return std::make_unique<FloatNode>(t);
     }
     case BOOL_LIT:
     {
@@ -855,7 +755,7 @@ static LiteralNode* parseLiteral()
       TOKEN t = CurTok;
       getNextToken();
 
-      return new BoolNode(t);
+      return std::make_unique<BoolNode>(t);
     }
     default:
       return nullptr;

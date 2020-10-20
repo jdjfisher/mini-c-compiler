@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
 
   // Run the parser now.
   auto p = parse();
-  std::cout << "Out: " << p->to_string() << "\n"; 
+  std::cout << p->to_string(); 
   fprintf(stderr, "Parsing Finished\n");
 
   //********************* Start printing final IR **************************

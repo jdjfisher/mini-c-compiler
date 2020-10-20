@@ -63,13 +63,15 @@ class LiteralNode : public Node {};
 class FactorNode : public Node 
 {
   private:
-    LiteralNode* l;
+    std::unique_ptr<LiteralNode> l;
+    std::unique_ptr<FactorNode> f;
     TOKEN op;
-    FactorNode* f;
 
   public:
-    FactorNode(LiteralNode* l) : l(l) {}
-    FactorNode(LiteralNode* l, TOKEN op, FactorNode* f) : l(l), op(op), f(f) {}
+    FactorNode(std::unique_ptr<LiteralNode> l) : l(std::move(l)) {}
+    FactorNode(
+      std::unique_ptr<LiteralNode> l, std::unique_ptr<FactorNode> f, TOKEN op
+    ) : l(std::move(l)), f(std::move(f)), op(op) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -84,13 +86,15 @@ class FactorNode : public Node
 class TermNode : public Node 
 {
   private:
-    FactorNode* f;
+    std::unique_ptr<FactorNode> f;
+    std::unique_ptr<TermNode> t;
     TOKEN op;
-    TermNode* t;
 
   public:
-    TermNode(FactorNode* f) : f(f) {}
-    TermNode(FactorNode* f, TOKEN op, TermNode* t) : f(f), op(op), t(t) {}
+    TermNode(std::unique_ptr<FactorNode> f) : f(std::move(f)) {}
+    TermNode(
+      std::unique_ptr<FactorNode> f, std::unique_ptr<TermNode> t, TOKEN op
+    ) : f(std::move(f)), t(std::move(t)), op(op) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -105,13 +109,15 @@ class TermNode : public Node
 class OrderNode : public Node 
 {
   private:
-    TermNode* t;
+    std::unique_ptr<TermNode> t;
+    std::unique_ptr<OrderNode> o;
     TOKEN op;
-    OrderNode* o;
 
   public:
-    OrderNode(TermNode* t) : t(t) {}
-    OrderNode(TermNode* t, TOKEN op, OrderNode* o) : t(t), op(op), o(o) {}
+    OrderNode(std::unique_ptr<TermNode> t) : t(std::move(t)) {}
+    OrderNode(
+      std::unique_ptr<TermNode> t, std::unique_ptr<OrderNode> o, TOKEN op
+    ) : t(std::move(t)), o(std::move(o)), op(op) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -126,13 +132,15 @@ class OrderNode : public Node
 class EqualNode : public Node 
 {
   private:
-    OrderNode* o;
+    std::unique_ptr<OrderNode> o;
+    std::unique_ptr<EqualNode> e;
     TOKEN op;
-    EqualNode* e;
 
   public:
-    EqualNode(OrderNode* o) : o(o) {}
-    EqualNode(OrderNode* o, TOKEN op, EqualNode* e) : o(o), op(op), e(e) {}
+    EqualNode(std::unique_ptr<OrderNode> o) : o(std::move(o)) {}
+    EqualNode(
+      std::unique_ptr<OrderNode> o, std::unique_ptr<EqualNode> e, TOKEN op
+    ) : o(std::move(o)), e(std::move(e)), op(op) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -147,11 +155,13 @@ class EqualNode : public Node
 class ConjNode : public Node 
 {
   private:
-    EqualNode* e;
-    ConjNode* c;
+    std::unique_ptr<EqualNode> e;
+    std::unique_ptr<ConjNode> c;
 
   public:
-    ConjNode(EqualNode* e, ConjNode* c = nullptr) : e(e), c(c) {}
+    ConjNode(
+      std::unique_ptr<EqualNode> e, std::unique_ptr<ConjNode> c = nullptr
+    ) : e(std::move(e)), c(std::move(c)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -166,11 +176,13 @@ class ConjNode : public Node
 class DisjNode : public Node 
 {
   private:
-    ConjNode* c;
-    DisjNode* d;
+    std::unique_ptr<ConjNode> c;
+    std::unique_ptr<DisjNode> d;
 
   public:
-    DisjNode(ConjNode* c, DisjNode* d = nullptr) : c(c), d(d) {}
+    DisjNode(
+      std::unique_ptr<ConjNode> c, std::unique_ptr<DisjNode> d = nullptr
+    ) : c(std::move(c)), d(std::move(d)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -186,12 +198,12 @@ class ExprNode : public Node
 {
   private:
     TOKEN id;
-    ExprNode* e;
-    DisjNode* d;
+    std::unique_ptr<ExprNode> e;
+    std::unique_ptr<DisjNode> d;
 
   public:
-    ExprNode(TOKEN id, ExprNode* e) : id(id), e(e) {}
-    ExprNode(DisjNode* d) : d(d) {}
+    ExprNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
+    ExprNode(std::unique_ptr<DisjNode> d) : d(std::move(d)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -206,11 +218,13 @@ class ExprNode : public Node
 class ArgListNode : public Node 
 {
   private:
-    ExprNode* e;
-    ArgListNode* al;
+    std::unique_ptr<ExprNode> e;
+    std::unique_ptr<ArgListNode> al;
 
   public:
-    ArgListNode(ExprNode* e, ArgListNode* al = nullptr) : e(e), al(al) {}
+    ArgListNode(
+      std::unique_ptr<ExprNode> e, std::unique_ptr<ArgListNode> al = nullptr
+    ) : e(std::move(e)), al(std::move(al)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -225,10 +239,10 @@ class ArgListNode : public Node
 class ArgsNode : public Node 
 {
   private:
-    ArgListNode* al;
+    std::unique_ptr<ArgListNode> al;
 
   public:
-    ArgsNode(ArgListNode* al = nullptr) : al(al) {}
+    ArgsNode(std::unique_ptr<ArgListNode> al = nullptr) : al(std::move(al)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -261,11 +275,11 @@ class VarTypeNode : public Node
 class VarDeclNode : public Node 
 {
   private:
-    VarTypeNode* vt;
+    std::unique_ptr<VarTypeNode> vt;
     TOKEN id;
 
   public:
-    VarDeclNode(VarTypeNode* vt, TOKEN id) : vt(vt), id(id) {}
+    VarDeclNode(std::unique_ptr<VarTypeNode> vt, TOKEN id) : vt(std::move(vt)), id(id) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -280,12 +294,14 @@ class VarDeclNode : public Node
 class LocalDeclsNode : public Node 
 {
   private:
-    VarDeclNode* vd;
-    LocalDeclsNode* lds;
+    std::unique_ptr<VarDeclNode> vd;
+    std::unique_ptr<LocalDeclsNode> lds;
 
   public:
     LocalDeclsNode() {}
-    LocalDeclsNode(VarDeclNode* vd, LocalDeclsNode* lds) : vd(vd), lds(lds) {}
+    LocalDeclsNode(
+      std::unique_ptr<VarDeclNode> vd, std::unique_ptr<LocalDeclsNode> lds
+    ) : vd(std::move(vd)), lds(std::move(lds)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -303,12 +319,14 @@ class StmtNode : public Node {};
 class StmtListNode : public Node 
 {
   private:
-    StmtNode* s;
-    StmtListNode* sl;
+    std::unique_ptr<StmtNode> s;
+    std::unique_ptr<StmtListNode> sl;
 
   public:
     StmtListNode() {}
-    StmtListNode(StmtNode* s, StmtListNode* sl) : s(s), sl(sl) {}
+    StmtListNode(
+      std::unique_ptr<StmtNode> s, std::unique_ptr<StmtListNode> sl
+    ) : s(std::move(s)), sl(std::move(sl)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -323,11 +341,13 @@ class StmtListNode : public Node
 class BlockStmtNode : public StmtNode 
 {
   private:
-    LocalDeclsNode* lds;
-    StmtListNode* sl;
+    std::unique_ptr<LocalDeclsNode> lds;
+    std::unique_ptr<StmtListNode> sl;
 
   public:
-    BlockStmtNode(LocalDeclsNode* lds, StmtListNode* sl) : lds(lds), sl(sl) {}
+    BlockStmtNode(
+      std::unique_ptr<LocalDeclsNode> lds, std::unique_ptr<StmtListNode> sl
+    ) : lds(std::move(lds)), sl(std::move(sl)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -342,10 +362,10 @@ class BlockStmtNode : public StmtNode
 class ExprStmtNode : public StmtNode 
 {
   private:
-    ExprNode* e;
+    std::unique_ptr<ExprNode> e;
 
   public:
-    ExprStmtNode(ExprNode* e = nullptr) : e(e) {}
+    ExprStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -360,10 +380,10 @@ class ExprStmtNode : public StmtNode
 class ReturnStmtNode : public StmtNode 
 {
   private:
-    ExprNode* e;
+    std::unique_ptr<ExprNode> e;
 
   public:
-    ReturnStmtNode(ExprNode* e = nullptr) : e(e) {}
+    ReturnStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -378,10 +398,10 @@ class ReturnStmtNode : public StmtNode
 class ElseStmtNode : public StmtNode 
 {
   private:
-    BlockStmtNode* bs;
+    std::unique_ptr<BlockStmtNode> bs;
 
   public:
-    ElseStmtNode(BlockStmtNode* bs = nullptr) : bs(bs) {}
+    ElseStmtNode(std::unique_ptr<BlockStmtNode> bs = nullptr) : bs(std::move(bs)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -396,12 +416,14 @@ class ElseStmtNode : public StmtNode
 class IfStmtNode : public StmtNode 
 {
   private:
-    ExprNode* e;
-    BlockStmtNode* bs;
-    ElseStmtNode* es;
+    std::unique_ptr<ExprNode> e;
+    std::unique_ptr<BlockStmtNode> bs;
+    std::unique_ptr<ElseStmtNode> es;
 
   public:
-    IfStmtNode(ExprNode* e, BlockStmtNode* bs, ElseStmtNode* es) : e(e), bs(bs), es(es) {}
+    IfStmtNode(
+      std::unique_ptr<ExprNode> e, std::unique_ptr<BlockStmtNode> bs, std::unique_ptr<ElseStmtNode> es
+    ) : e(std::move(e)), bs(std::move(bs)), es(std::move(es)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -416,11 +438,11 @@ class IfStmtNode : public StmtNode
 class WhileStmtNode : public StmtNode 
 {
   private:
-    ExprNode* e;
-    StmtNode* s;
+    std::unique_ptr<ExprNode> e;
+    std::unique_ptr<StmtNode> s;
 
   public:
-    WhileStmtNode(ExprNode* e, StmtNode* s) : e(e), s(s) {}
+    WhileStmtNode(std::unique_ptr<ExprNode> e, std::unique_ptr<StmtNode> s) : e(std::move(e)), s(std::move(s)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -435,11 +457,11 @@ class WhileStmtNode : public StmtNode
 class ParamNode : public Node 
 {
   private:
-    VarTypeNode* vt;
+    std::unique_ptr<VarTypeNode> vt;
     TOKEN id;
 
   public:
-    ParamNode(VarTypeNode* vt, TOKEN id) : vt(vt), id(id) {}
+    ParamNode(std::unique_ptr<VarTypeNode> vt, TOKEN id) : vt(std::move(vt)), id(id) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -454,11 +476,13 @@ class ParamNode : public Node
 class ParamListNode : public Node 
 {
   private:
-    ParamNode* p;
-    ParamListNode* pl;
+    std::unique_ptr<ParamNode> p;
+    std::unique_ptr<ParamListNode> pl;
 
   public:
-    ParamListNode(ParamNode* p, ParamListNode* pl = nullptr) : p(p), pl(pl) {}
+    ParamListNode(
+      std::unique_ptr<ParamNode> p, std::unique_ptr<ParamListNode> pl = nullptr
+    ) : p(std::move(p)), pl(std::move(pl)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -473,10 +497,10 @@ class ParamListNode : public Node
 class ParamsNode : public Node 
 {
   private:
-    ParamListNode* pl;
+    std::unique_ptr<ParamListNode> pl;
 
   public:
-    ParamsNode(ParamListNode* pl = nullptr) : pl(pl) {}
+    ParamsNode(std::unique_ptr<ParamListNode> pl = nullptr) : pl(std::move(pl)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -491,10 +515,10 @@ class ParamsNode : public Node
 class FunTypeNode : public Node 
 {
   private:
-    VarTypeNode* vt;
+    std::unique_ptr<VarTypeNode> vt;
 
   public:
-    FunTypeNode(VarTypeNode* vt = nullptr) : vt(vt) {}
+    FunTypeNode(std::unique_ptr<VarTypeNode> vt = nullptr) : vt(std::move(vt)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -509,17 +533,17 @@ class FunTypeNode : public Node
 class FunDeclNode : public Node 
 {
   private:
-    FunTypeNode* ft;
+    std::unique_ptr<FunTypeNode> ft;
+    std::unique_ptr<ParamsNode> p;
+    std::unique_ptr<BlockStmtNode> bs;
     TOKEN id;
-    ParamsNode* p;
-    BlockStmtNode* bs;
 
   public:
-    FunDeclNode(FunTypeNode* ft, 
-                TOKEN id,
-                ParamsNode* p, 
-                BlockStmtNode* bs
-    ) : ft(ft), id(id), p(p), bs(bs) {}
+    FunDeclNode(std::unique_ptr<FunTypeNode> ft, 
+                std::unique_ptr<ParamsNode> p, 
+                std::unique_ptr<BlockStmtNode> bs,
+                TOKEN id
+    ) : ft(std::move(ft)), p(std::move(p)), bs(std::move(bs)), id(id) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -534,12 +558,12 @@ class FunDeclNode : public Node
 class DeclNode : public Node 
 {
   private:
-    VarDeclNode* vd;
-    FunDeclNode* fd;
+    std::unique_ptr<VarDeclNode> vd;
+    std::unique_ptr<FunDeclNode> fd;
 
   public:
-    DeclNode(VarDeclNode* vd) : vd(vd) {}
-    DeclNode(FunDeclNode* fd) : fd(fd) {}
+    DeclNode(std::unique_ptr<VarDeclNode> vd) : vd(std::move(vd)) {}
+    DeclNode(std::unique_ptr<FunDeclNode> fd) : fd(std::move(fd)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -554,11 +578,13 @@ class DeclNode : public Node
 class DeclListNode : public Node 
 {
   private:
-    DeclNode* d;
-    DeclListNode* dl;
+    std::unique_ptr<DeclNode> d;
+    std::unique_ptr<DeclListNode> dl;
 
   public:
-    DeclListNode(DeclNode* d, DeclListNode* dl = nullptr) : d(d), dl(dl) {}
+    DeclListNode(
+      std::unique_ptr<DeclNode> d, std::unique_ptr<DeclListNode> dl = nullptr
+    ) : d(std::move(d)), dl(std::move(dl)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -573,12 +599,14 @@ class DeclListNode : public Node
 class ExternNode : public Node 
 {
   private:
-    FunTypeNode* ft;
+    std::unique_ptr<FunTypeNode> ft;
+    std::unique_ptr<ParamsNode> p;
     TOKEN id;
-    ParamsNode* p;
 
   public:
-    ExternNode(FunTypeNode* ft, TOKEN id, ParamsNode* p) : ft(ft), id(id), p(p) {}
+    ExternNode(
+      std::unique_ptr<FunTypeNode> ft, std::unique_ptr<ParamsNode> p, TOKEN id
+    ) : ft(std::move(ft)), p(std::move(p)), id(id) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -593,11 +621,13 @@ class ExternNode : public Node
 class ExternListNode : public Node 
 {
   private:
-    ExternNode* e;
-    ExternListNode* el;
+    std::unique_ptr<ExternNode> e;
+    std::unique_ptr<ExternListNode> el;
 
 public:
-  ExternListNode(ExternNode* e, ExternListNode* el = nullptr) : e(e), el(el) {}
+  ExternListNode(
+    std::unique_ptr<ExternNode> e, std::unique_ptr<ExternListNode> el = nullptr
+  ) : e(std::move(e)), el(std::move(el)) {}
   virtual llvm::Value *codegen() override
   {
     return NULL;
@@ -615,11 +645,13 @@ public:
 class ProgramNode : public Node 
 {
   private:
-    ExternListNode* el;
-    DeclListNode* dl;
+    std::unique_ptr<ExternListNode> el;
+    std::unique_ptr<DeclListNode> dl;
 
   public:
-    ProgramNode(ExternListNode* el, DeclListNode* dl) : el(el), dl(dl) {}
+    ProgramNode(
+      std::unique_ptr<ExternListNode> el, std::unique_ptr<DeclListNode> dl
+    ) : el(std::move(el)), dl(std::move(dl)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL; // TODO: Translate to LLVM IR
@@ -635,10 +667,10 @@ class UnaryNode : public LiteralNode
 {
   private:
     TOKEN op;
-    LiteralNode* l;
+    std::unique_ptr<LiteralNode> l;
 
   public:
-    UnaryNode(TOKEN op, LiteralNode* l) : op(op), l(l) {}
+    UnaryNode(TOKEN op, std::unique_ptr<LiteralNode> l) : op(op), l(std::move(l)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -653,10 +685,10 @@ class UnaryNode : public LiteralNode
 class ParenthesesNode : public LiteralNode 
 {
   private:
-    ExprNode* e;
+    std::unique_ptr<ExprNode> e;
 
   public:
-    ParenthesesNode(ExprNode* e) : e(e) {}
+    ParenthesesNode(std::unique_ptr<ExprNode> e) : e(std::move(e)) {}
     virtual llvm::Value *codegen() override
     {
       return NULL;
@@ -693,10 +725,10 @@ class CallNode : public LiteralNode
 {
   private:
     std::string id;
-    ArgsNode* a;
+    std::unique_ptr<ArgsNode> a;
 
   public:
-    CallNode(TOKEN tok, ArgsNode* a) : a(a)
+    CallNode(TOKEN tok, std::unique_ptr<ArgsNode> a) : a(std::move(a))
     {
       id = tok.lexeme;
     }
