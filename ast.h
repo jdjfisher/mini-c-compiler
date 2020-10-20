@@ -53,7 +53,7 @@ class Node
   public:
     virtual ~Node() {}
     virtual llvm::Value *codegen() = 0;
-    virtual std::string to_string() const;
+    virtual std::string to_string(std::string indent = "") const;
 };
 
 // LiteralNode - Class for ...
@@ -76,9 +76,9 @@ class FactorNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<factor>";
+      return indent + "<factor>\n";
     };
 };
 
@@ -99,9 +99,9 @@ class TermNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<term>";
+      return indent + "<term>\n";
     };
 };
 
@@ -122,9 +122,9 @@ class OrderNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<order>";
+      return indent + "<order>\n";
     };
 };
 
@@ -145,9 +145,9 @@ class EqualNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<equal>";
+      return indent + "<equal>\n";
     };
 };
 
@@ -166,9 +166,9 @@ class ConjNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<conj>";
+      return indent + "<conj>\n";
     };
 };
 
@@ -187,9 +187,9 @@ class DisjNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<disj>";
+      return indent + "<disj>\n";
     };
 };
 
@@ -208,9 +208,9 @@ class ExprNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<expr>";
+      return indent + "<expr>\n";
     };
 };
 
@@ -229,9 +229,12 @@ class ArgListNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<argList>";
+      std::string str = indent + "<arg_list>\n";
+      str += e->to_string(indent + "  ");
+      if (al) str += al->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -247,9 +250,11 @@ class ArgsNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<args>";
+      std::string str = indent + "<args>\n";
+      str += al->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -265,9 +270,10 @@ class VarTypeNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<var_type>";
+      std::string str = indent + "<var_type> " + tok.lexeme + "\n";
+      return str;
     };
 };
 
@@ -284,9 +290,11 @@ class VarDeclNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<var_decl>" + id.lexeme;
+      std::string str = indent + "<var_decl> " + id.lexeme + "\n";
+      str += vt->to_string(indent + "  ");
+      return str;  
     };
 };
 
@@ -306,9 +314,12 @@ class LocalDeclsNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<local_decls>";
+      std::string str = indent + "<local_decls>\n";
+      if (vd) str += vd->to_string(indent + "  ");
+      if (lds) str += lds->to_string(indent + "  ");
+      return str;  
     };
 };
 
@@ -331,9 +342,12 @@ class StmtListNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<stmt_list>";
+      std::string str = indent + "<stmt_list>\n";
+      if (s) str += s->to_string(indent + "  ");
+      if (sl) str += sl->to_string(indent + "  ");
+      return str;  
     };
 };
 
@@ -352,9 +366,12 @@ class BlockStmtNode : public StmtNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<block_stmt>";
+      std::string str = indent + "<block_stmt>\n";
+      str += lds->to_string(indent + "  ");
+      str += sl->to_string(indent + "  ");
+      return str;   
     };
 };
 
@@ -370,9 +387,11 @@ class ExprStmtNode : public StmtNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<expr_stmt>";
+      std::string str = indent + "<expr_stmt>\n";
+      if (e) str += e->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -388,9 +407,11 @@ class ReturnStmtNode : public StmtNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<return_stmt>";
+      std::string str = indent + "<return_stmt>\n";
+      if (e) str += e->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -406,9 +427,11 @@ class ElseStmtNode : public StmtNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<else_stmt>";
+      std::string str = indent + "<else_stmt>\n";
+      if (bs) str += bs->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -428,9 +451,13 @@ class IfStmtNode : public StmtNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<if_stmt>";
+      std::string str = indent + "<if_stmt>\n";
+      str += e->to_string(indent + "  ");
+      str += bs->to_string(indent + "  ");
+      str += es->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -447,9 +474,12 @@ class WhileStmtNode : public StmtNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<while_stmt>";
+      std::string str = indent + "<while_stmt>\n";
+      str += e->to_string(indent + "  ");
+      str += s->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -466,9 +496,11 @@ class ParamNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<param> " + id.lexeme;
+      std::string str = indent + "<param> " + id.lexeme + "\n";
+      str += vt->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -487,9 +519,12 @@ class ParamListNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<param_list>";
+      std::string str = indent + "<param_list>\n";
+      str += p->to_string(indent + "  ");
+      if (pl) str += pl->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -505,9 +540,11 @@ class ParamsNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<params>";
+      std::string str = indent + "<params>\n";
+      str += pl->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -523,9 +560,11 @@ class FunTypeNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return vt ? "<fun_type>" : "<fun_type> void";
+      std::string str = indent + (vt ? "<fun_type>\n" : "<fun_type> void\n");
+      if (vt) str += vt->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -548,9 +587,13 @@ class FunDeclNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<fun_decl> " + id.lexeme;
+      std::string str = indent + "<fun_decl> " + id.lexeme + "\n";
+      str += ft->to_string(indent + "  ");
+      str += p->to_string(indent + "  ");
+      str += bs->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -568,9 +611,12 @@ class DeclNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<decl>";
+      std::string str = indent + "<decl>\n";
+      if (vd) str += vd->to_string(indent + "  ");
+      if (fd) str += fd->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -589,9 +635,12 @@ class DeclListNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<decl_list>";
+      std::string str = indent + "<decl_list>\n";
+      str += d->to_string(indent + "  ");
+      if (dl) str += dl->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -611,9 +660,12 @@ class ExternNode : public Node
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<extern> " + id.lexeme + "\n    " + ft->to_string() + "\n    " + p->to_string() + "\n";
+      std::string str = indent + "<extern> " + id.lexeme + "\n";
+      str += ft->to_string(indent + "  ");
+      if (p) str += p->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -632,12 +684,12 @@ public:
   {
     return NULL;
   };
-  virtual std::string to_string() const override
+  virtual std::string to_string(std::string indent = "") const override
   {
-    std::string s = "<extern_list>\n  " + e->to_string() + "\n";
-    if (el) s+= "  " + el->to_string() + "\n";
-    
-    return s;
+    std::string str = indent + "<extern_list>\n";
+    str += e->to_string(indent + "  ");
+    if (el) str += el->to_string(indent + "  ");
+    return str;
   };
 };
 
@@ -656,9 +708,12 @@ class ProgramNode : public Node
     {
       return NULL; // TODO: Translate to LLVM IR
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<program>\n  " + el->to_string() + "\n  " + dl->to_string() + "\n";
+      std::string str = indent + "<program>\n";
+      str += el->to_string(indent + "  ");
+      if (dl) str += dl->to_string(indent + "  ");
+      return str;
     };
 };
 
@@ -675,9 +730,9 @@ class UnaryNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<unary>" + op.lexeme;
+      return indent + "<unary>" + op.lexeme;
     };
 };
 
@@ -693,9 +748,9 @@ class ParenthesesNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<parentheses>";
+      return indent + "<parentheses>\n";
     };
 };
 
@@ -714,9 +769,9 @@ class VariableNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<variable> " + id;
+      return indent + "<variable> " + id;
     };
 };
 
@@ -736,9 +791,9 @@ class CallNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<call>" + id;
+      return indent + "<call>" + id;
     };
 };
 
@@ -757,9 +812,9 @@ class IntNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<int> " + std::to_string(val);
+      return indent + "<int> " + std::to_string(val);
     };
 };
 
@@ -778,9 +833,9 @@ class FloatNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<float> " + std::to_string(val);
+      return indent + "<float> " + std::to_string(val);
     };
 };
 
@@ -799,8 +854,8 @@ class BoolNode : public LiteralNode
     {
       return NULL;
     };
-    virtual std::string to_string() const override
+    virtual std::string to_string(std::string indent = "") const override
     {
-      return "<bool> " + std::to_string(val);
+      return indent + "<bool> " + std::to_string(val);
     };
 };
