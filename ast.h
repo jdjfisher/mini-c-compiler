@@ -76,7 +76,7 @@ class FactorNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "FactorNode";
+      return "<factor>";
     };
 };
 
@@ -97,7 +97,7 @@ class TermNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "TermNode";
+      return "<term>";
     };
 };
 
@@ -118,7 +118,7 @@ class OrderNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "OrderNode";
+      return "<order>";
     };
 };
 
@@ -139,7 +139,7 @@ class EqualNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "EqualNode";
+      return "<equal>";
     };
 };
 
@@ -158,7 +158,7 @@ class ConjNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ConjNode";
+      return "<conj>";
     };
 };
 
@@ -177,7 +177,7 @@ class DisjNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "DisjNode";
+      return "<disj>";
     };
 };
 
@@ -198,7 +198,7 @@ class ExprNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ExprNode";
+      return "<expr>";
     };
 };
 
@@ -217,7 +217,7 @@ class ArgListNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ArgListNode";
+      return "<argList>";
     };
 };
 
@@ -235,7 +235,7 @@ class ArgsNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ArgsNode";
+      return "<args>";
     };
 };
 
@@ -253,7 +253,7 @@ class VarTypeNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "VarTypeNode";
+      return "<var_type>";
     };
 };
 
@@ -272,7 +272,7 @@ class VarDeclNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "VarDeclNode";
+      return "<var_decl>" + id.lexeme;
     };
 };
 
@@ -292,7 +292,7 @@ class LocalDeclsNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "LocalDeclsNode";
+      return "<local_decls>";
     };
 };
 
@@ -315,7 +315,7 @@ class StmtListNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "StmtListNode";
+      return "<stmt_list>";
     };
 };
 
@@ -334,7 +334,7 @@ class BlockStmtNode : public StmtNode
     };
     virtual std::string to_string() const override
     {
-      return "BlockStmtNode";
+      return "<block_stmt>";
     };
 };
 
@@ -352,7 +352,7 @@ class ExprStmtNode : public StmtNode
     };
     virtual std::string to_string() const override
     {
-      return "ExprStmtNode";
+      return "<expr_stmt>";
     };
 };
 
@@ -370,7 +370,7 @@ class ReturnStmtNode : public StmtNode
     };
     virtual std::string to_string() const override
     {
-      return "ReturnStmtNode";
+      return "<return_stmt>";
     };
 };
 
@@ -388,7 +388,7 @@ class ElseStmtNode : public StmtNode
     };
     virtual std::string to_string() const override
     {
-      return "ElseStmtNode";
+      return "<else_stmt>";
     };
 };
 
@@ -408,7 +408,7 @@ class IfStmtNode : public StmtNode
     };
     virtual std::string to_string() const override
     {
-      return "IfStmtNode";
+      return "<if_stmt>";
     };
 };
 
@@ -427,7 +427,7 @@ class WhileStmtNode : public StmtNode
     };
     virtual std::string to_string() const override
     {
-      return "WhileStmtNode";
+      return "<while_stmt>";
     };
 };
 
@@ -446,7 +446,7 @@ class ParamNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ParamNode";
+      return "<param> " + id.lexeme;
     };
 };
 
@@ -465,7 +465,7 @@ class ParamListNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ParamListNode";
+      return "<param_list>";
     };
 };
 
@@ -483,7 +483,7 @@ class ParamsNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "ParamsNode";
+      return "<params>";
     };
 };
 
@@ -501,7 +501,7 @@ class FunTypeNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "FunTypeNode";
+      return vt ? "<fun_type>" : "<fun_type> void";
     };
 };
 
@@ -526,7 +526,7 @@ class FunDeclNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "FunDeclNode";
+      return "<fun_decl> " + id.lexeme;
     };
 };
 
@@ -546,7 +546,7 @@ class DeclNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "DeclNode";
+      return "<decl>";
     };
 };
 
@@ -565,7 +565,7 @@ class DeclListNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "DeclListNode";
+      return "<decl_list>";
     };
 };
 
@@ -585,7 +585,7 @@ class ExternNode : public Node
     };
     virtual std::string to_string() const override
     {
-        return "ExternNode";
+      return "<extern> " + id.lexeme + "\n    " + ft->to_string() + "\n    " + p->to_string() + "\n";
     };
 };
 
@@ -604,7 +604,10 @@ public:
   };
   virtual std::string to_string() const override
   {
-      return "ExternListNode";
+    std::string s = "<extern_list>\n  " + e->to_string() + "\n";
+    if (el) s+= "  " + el->to_string() + "\n";
+    
+    return s;
   };
 };
 
@@ -623,8 +626,7 @@ class ProgramNode : public Node
     };
     virtual std::string to_string() const override
     {
-      return "Program";
-      // return std::sprintf("<program>\n    %s\n    %s\n", el->to_string(), dl->to_string()); 
+      return "<program>\n  " + el->to_string() + "\n  " + dl->to_string() + "\n";
     };
 };
 
@@ -643,7 +645,7 @@ class UnaryNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "UnaryNode";
+      return "<unary>" + op.lexeme;
     };
 };
 
@@ -661,7 +663,7 @@ class ParenthesesNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "ParenthesesNode";
+      return "<parentheses>";
     };
 };
 
@@ -682,7 +684,7 @@ class VariableNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "VariableNode";
+      return "<variable> " + id;
     };
 };
 
@@ -704,7 +706,7 @@ class CallNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "CallNode";
+      return "<call>" + id;
     };
 };
 
@@ -725,7 +727,7 @@ class IntNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "IntNode";
+      return "<int> " + std::to_string(val);
     };
 };
 
@@ -746,7 +748,7 @@ class FloatNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "FloatNode";
+      return "<float> " + std::to_string(val);
     };
 };
 
@@ -767,6 +769,6 @@ class BoolNode : public LiteralNode
     };
     virtual std::string to_string() const override
     {
-      return "<Bool> ";
+      return "<bool> " + std::to_string(val);
     };
 };
