@@ -584,9 +584,9 @@ static std::unique_ptr<ConjNode> parseConj()
   auto e = parseEqual();
   if (!e) return nullptr;
 
-  if (CurTok.type == OR) 
+  if (CurTok.type == AND) 
   {
-    // Consume the || token.
+    // Consume the && token.
     getNextToken();
 
     auto c = parseConj();
