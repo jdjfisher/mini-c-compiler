@@ -53,9 +53,9 @@ FILE *pFile;
 // Code Generation
 //===----------------------------------------------------------------------===//
 
-static LLVMContext TheContext;
-static IRBuilder<> Builder(TheContext);
-static std::unique_ptr<Module> TheModule;
+LLVMContext context;
+IRBuilder<> builder(context);
+std::unique_ptr<Module> module;
 
 //===----------------------------------------------------------------------===//
 // AST Printer
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   // fprintf(stderr, "Lexer Finished\n");
 
   // Make the module, which holds all the code.
-  TheModule = std::make_unique<Module>("mini-c", TheContext);
+  module = std::make_unique<Module>("mini-c", context);
 
   // Run the parser now.
   auto p = parse();
@@ -100,16 +100,17 @@ int main(int argc, char **argv) {
 
   //********************* Start printing final IR **************************
   // Print out all of the generated code into a file called output.ll
-  auto Filename = "output.ll";
-  std::error_code EC;
-  raw_fd_ostream dest(Filename, EC, sys::fs::F_None);
+  std::error_code ec;
+  raw_fd_ostream dest("output.ll", ec, sys::fs::F_None);
 
-  if (EC) {
-    errs() << "Could not open file: " << EC.message();
+  if (ec) 
+  {
+    errs() << "Could not open file: " << ec.message();
     return 1;
   }
-  // TheModule->print(errs(), nullptr); // print IR to terminal
-  TheModule->print(dest, nullptr);
+  
+  // module->print(errs(), nullptr); // print IR to terminal
+  module->print(dest, nullptr);
   //********************* End printing final IR ****************************
 
   fclose(pFile); // close the file that contains the code that was parsed
