@@ -59,161 +59,51 @@ class Node
     virtual std::string to_string(std::string indent = "") const;
 };
 
+// ExprNode - Class for ...
+class ExprNode : public Node {};
+
 // LiteralNode - Class for ...
-class LiteralNode : public Node {};
+class LiteralNode : public ExprNode {};
 
 // FactorNode - Class for ...
-class FactorNode : public Node 
+class BinOpNode : public ExprNode 
 {
   private:
-    std::unique_ptr<LiteralNode> l;
-    std::unique_ptr<FactorNode> f;
+    std::unique_ptr<ExprNode> l;
+    std::unique_ptr<ExprNode> r;
     TOKEN op;
 
   public:
-    FactorNode(std::unique_ptr<LiteralNode> l) : l(std::move(l)) {}
-    FactorNode(
-      std::unique_ptr<LiteralNode> l, std::unique_ptr<FactorNode> f, TOKEN op
-    ) : l(std::move(l)), f(std::move(f)), op(op) {}
+    BinOpNode(
+      std::unique_ptr<ExprNode> l, std::unique_ptr<ExprNode> r, TOKEN op
+    ) : l(std::move(l)), r(std::move(r)), op(op) {}
     virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<factor>\n";
+      return indent + "<bin_op> " + op.lexeme + "\n"
+        + l->to_string(indent + "  ") + r->to_string(indent + "  ");
     };
 };
 
-// TermNode - Class for ...
-class TermNode : public Node 
-{
-  private:
-    std::unique_ptr<FactorNode> f;
-    std::unique_ptr<TermNode> t;
-    TOKEN op;
-
-  public:
-    TermNode(std::unique_ptr<FactorNode> f) : f(std::move(f)) {}
-    TermNode(
-      std::unique_ptr<FactorNode> f, std::unique_ptr<TermNode> t, TOKEN op
-    ) : f(std::move(f)), t(std::move(t)), op(op) {}
-    virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return indent + "<term>\n";
-    };
-};
-
-// OrderNode - Class for ...
-class OrderNode : public Node 
-{
-  private:
-    std::unique_ptr<TermNode> t;
-    std::unique_ptr<OrderNode> o;
-    TOKEN op;
-
-  public:
-    OrderNode(std::unique_ptr<TermNode> t) : t(std::move(t)) {}
-    OrderNode(
-      std::unique_ptr<TermNode> t, std::unique_ptr<OrderNode> o, TOKEN op
-    ) : t(std::move(t)), o(std::move(o)), op(op) {}
-    virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return indent + "<order>\n";
-    };
-};
-
-// EqualNode - Class for ...
-class EqualNode : public Node 
-{
-  private:
-    std::unique_ptr<OrderNode> o;
-    std::unique_ptr<EqualNode> e;
-    TOKEN op;
-
-  public:
-    EqualNode(std::unique_ptr<OrderNode> o) : o(std::move(o)) {}
-    EqualNode(
-      std::unique_ptr<OrderNode> o, std::unique_ptr<EqualNode> e, TOKEN op
-    ) : o(std::move(o)), e(std::move(e)), op(op) {}
-    virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return indent + "<equal>\n";
-    };
-};
-
-// ConjNode - Class for ...
-class ConjNode : public Node 
-{
-  private:
-    std::unique_ptr<EqualNode> e;
-    std::unique_ptr<ConjNode> c;
-
-  public:
-    ConjNode(
-      std::unique_ptr<EqualNode> e, std::unique_ptr<ConjNode> c = nullptr
-    ) : e(std::move(e)), c(std::move(c)) {}
-    virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return indent + "<conj>\n";
-    };
-};
-
-// DisjNode - Class for ...
-class DisjNode : public Node 
-{
-  private:
-    std::unique_ptr<ConjNode> c;
-    std::unique_ptr<DisjNode> d;
-
-  public:
-    DisjNode(
-      std::unique_ptr<ConjNode> c, std::unique_ptr<DisjNode> d = nullptr
-    ) : c(std::move(c)), d(std::move(d)) {}
-    virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return indent + "<disj>\n";
-    };
-};
-
-// ExprNode - Class for ...
-class ExprNode : public Node 
+// AssignNode - Class for ...
+class AssignNode : public ExprNode
 {
   private:
     TOKEN id;
     std::unique_ptr<ExprNode> e;
-    std::unique_ptr<DisjNode> d;
 
   public:
-    ExprNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
-    ExprNode(std::unique_ptr<DisjNode> d) : d(std::move(d)) {}
+    AssignNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
     virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<expr>\n";
+      return indent + "<assign> " + id.lexeme + "\n" + e->to_string(indent + "  ");
     };
 };
 
@@ -735,7 +625,7 @@ class UnaryNode : public LiteralNode
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<unary>" + op.lexeme;
+      return indent + "<unary>" + op.lexeme + "\n" + l->to_string(indent + "  ");
     };
 };
 
@@ -753,7 +643,7 @@ class ParenthesesNode : public LiteralNode
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<parentheses>\n";
+      return indent + "<parentheses>\n" + e->to_string(indent + "  ");
     };
 };
 
@@ -761,20 +651,17 @@ class ParenthesesNode : public LiteralNode
 class VariableNode : public LiteralNode 
 {
   private:
-    std::string id;
+    TOKEN id;
 
   public:
-    VariableNode(TOKEN tok)
-    {
-      id = tok.lexeme;
-    }
+    VariableNode(TOKEN id): id(id) {}
     virtual Value *codegen(LLVMContext context, std::unique_ptr<Module> module) override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<variable> " + id;
+      return indent + "<variable> " + id.lexeme + "\n";
     };
 };
 
@@ -808,7 +695,7 @@ class CallNode : public LiteralNode
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<call>" + id.lexeme;
+      return indent + "<call> " + id.lexeme + "\n";
     };
 };
 
@@ -830,7 +717,7 @@ class IntNode : public LiteralNode
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<int> " + std::to_string(val);
+      return indent + "<int> " + std::to_string(val) + "\n";
     };
 };
 
@@ -851,7 +738,7 @@ class FloatNode : public LiteralNode
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<float> " + std::to_string(val);
+      return indent + "<float> " + std::to_string(val) + "\n";
     };
 };
 
@@ -873,6 +760,6 @@ class BoolNode : public LiteralNode
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<bool> " + std::to_string(val);
+      return indent + "<bool> " + std::to_string(val) + "\n";
     };
 };

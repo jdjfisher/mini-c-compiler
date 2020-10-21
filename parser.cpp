@@ -546,21 +546,16 @@ static std::unique_ptr<ExprNode> parseExpr()
     auto e = parseExpr();
     if (!e) return nullptr;
 
-    return std::make_unique<ExprNode>(ot, std::move(e)); 
+    return std::make_unique<AssignNode>(ot, std::move(e)); 
   }
-  else
-  {
-    // Revert the look-ahead
-    putBackToken(ot);
 
-    auto d = parseDisj();
-    if (!d) return nullptr;
+  // Revert the look-ahead
+  putBackToken(ot);
 
-    return std::make_unique<ExprNode>(std::move(d)); 
-  }
+  return parseDisj();
 }
 
-static std::unique_ptr<DisjNode> parseDisj()
+static std::unique_ptr<ExprNode> parseDisj()
 {
   auto c = parseConj();
   if (!c) return nullptr;
@@ -568,18 +563,19 @@ static std::unique_ptr<DisjNode> parseDisj()
   if (CurTok.type == OR) 
   {
     // Consume the || token.
+    TOKEN op = CurTok;
     getNextToken();
 
     auto d = parseDisj();
     if (!d) return nullptr;
 
-    return std::make_unique<DisjNode>(std::move(c), std::move(d));
+    return std::make_unique<BinOpNode>(std::move(c), std::move(d), op);
   }
 
-  return std::make_unique<DisjNode>(std::move(c));
+  return std::move(c);
 }
 
-static std::unique_ptr<ConjNode> parseConj()
+static std::unique_ptr<ExprNode> parseConj()
 {
   auto e = parseEqual();
   if (!e) return nullptr;
@@ -587,18 +583,19 @@ static std::unique_ptr<ConjNode> parseConj()
   if (CurTok.type == AND) 
   {
     // Consume the && token.
+    TOKEN op = CurTok;
     getNextToken();
 
     auto c = parseConj();
     if (!c) return nullptr;
 
-    return std::make_unique<ConjNode>(std::move(e), std::move(c));
+    return std::make_unique<BinOpNode>(std::move(e), std::move(c), op);
   }
 
-  return std::make_unique<ConjNode>(std::move(e));
+  return std::move(e);
 }
 
-static std::unique_ptr<EqualNode> parseEqual()
+static std::unique_ptr<ExprNode> parseEqual()
 {
   auto o = parseOrder();
   if (!o) return nullptr;
@@ -612,13 +609,13 @@ static std::unique_ptr<EqualNode> parseEqual()
     auto e = parseEqual();
     if (!e) return nullptr;
 
-    return std::make_unique<EqualNode>(std::move(o), std::move(e), op);
+    return std::make_unique<BinOpNode>(std::move(o), std::move(e), op);
   }
 
-  return std::make_unique<EqualNode>(std::move(o));
+  return std::move(o);
 }
 
-static std::unique_ptr<OrderNode> parseOrder()
+static std::unique_ptr<ExprNode> parseOrder()
 {
   auto t = parseTerm();
   if (!t) return nullptr;
@@ -634,13 +631,13 @@ static std::unique_ptr<OrderNode> parseOrder()
     auto o = parseOrder();
     if (!o) return nullptr;
 
-    return std::make_unique<OrderNode>(std::move(t), std::move(o), op);
+    return std::make_unique<BinOpNode>(std::move(t), std::move(o), op);
   }
 
-  return std::make_unique<OrderNode>(std::move(t));
+  return std::move(t);
 }
 
-static std::unique_ptr<TermNode> parseTerm()
+static std::unique_ptr<ExprNode> parseTerm()
 {
   auto f = parseFactor();
   if (!f) return nullptr;
@@ -654,13 +651,13 @@ static std::unique_ptr<TermNode> parseTerm()
     auto t = parseTerm();
     if (!t) return nullptr;
 
-    return std::make_unique<TermNode>(std::move(f), std::move(t), op);
+    return std::make_unique<BinOpNode>(std::move(f), std::move(t), op);
   }
 
-  return std::make_unique<TermNode>(std::move(f));
+  return std::move(f);
 }
 
-static std::unique_ptr<FactorNode> parseFactor()
+static std::unique_ptr<ExprNode> parseFactor()
 {
   auto l = parseLiteral();
   if (!l) return nullptr;
@@ -674,10 +671,10 @@ static std::unique_ptr<FactorNode> parseFactor()
     auto f = parseFactor();
     if (!f) return nullptr;
 
-    return std::make_unique<FactorNode>(std::move(l), std::move(f), op);
+    return std::make_unique<BinOpNode>(std::move(l), std::move(f), op);
   }
 
-  return std::make_unique<FactorNode>(std::move(l));
+  return std::move(l);
 }
 
 static std::unique_ptr<LiteralNode> parseLiteral()
