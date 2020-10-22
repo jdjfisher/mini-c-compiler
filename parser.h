@@ -16,6 +16,7 @@
 
 // Application imports
 #include "ast.h"
+#include "lexer.h"
 
 TOKEN getCurrentToken();
 TOKEN getNextToken();
@@ -28,8 +29,6 @@ static std::unique_ptr<DeclListNode> parseDeclList();
 static std::unique_ptr<DeclNode> parseDecl();
 static std::unique_ptr<VarDeclNode> parseVarDecl();
 static std::unique_ptr<FunDeclNode> parseFunDecl();
-static std::unique_ptr<VarTypeNode> parseVarType();
-static std::unique_ptr<FunTypeNode> parseFunType();
 static std::unique_ptr<ParamsNode> parseParams();
 static std::unique_ptr<ParamListNode> parseParamList();
 static std::unique_ptr<ParamNode> parseParam();
@@ -52,3 +51,5 @@ static std::unique_ptr<ExprNode> parseOrder();
 static std::unique_ptr<ExprNode> parseTerm();
 static std::unique_ptr<ExprNode> parseFactor();
 static std::unique_ptr<LiteralNode> parseLiteral();
+static std::unique_ptr<TOKEN> parseVarType();
+static std::unique_ptr<TOKEN> parseFunType();

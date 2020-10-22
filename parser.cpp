@@ -109,7 +109,7 @@ static std::unique_ptr<ExternNode> parseExtern()
   // Consume the ; token.
   getNextToken();
 
-  return std::make_unique<ExternNode>(std::move(ft), std::move(p), t);
+  return std::make_unique<ExternNode>(std::move(p), *ft, t);
 }
 
 static std::unique_ptr<DeclListNode> parseDeclList() 
@@ -129,7 +129,7 @@ static std::unique_ptr<DeclListNode> parseDeclList()
   return std::make_unique<DeclListNode>(std::move(d));
 }
 
-static std::unique_ptr<DeclNode> parseDecl() // TODO: fix
+static std::unique_ptr<DeclNode> parseDecl()
 {
   TOKEN t1 = getCurrentToken();
   TOKEN t2 = getNextToken();
@@ -169,7 +169,7 @@ static std::unique_ptr<VarDeclNode> parseVarDecl()
   // Consume the ; token.
   getNextToken();
 
-  return std::make_unique<VarDeclNode>(std::move(vt), std::move(t));
+  return std::make_unique<VarDeclNode>(*vt, t);
 }
 
 static std::unique_ptr<FunDeclNode> parseFunDecl() 
@@ -196,42 +196,7 @@ static std::unique_ptr<FunDeclNode> parseFunDecl()
   auto bs = parseBlockStmt();
   if (!bs) return nullptr;
 
-  return std::make_unique<FunDeclNode>(std::move(ft), std::move(p), std::move(bs), t);
-}
-
-static std::unique_ptr<VarTypeNode> parseVarType() 
-{
-  switch (CurTok.type)
-  {
-    case BOOL_TOK:
-    case INT_TOK:
-    case FLOAT_TOK: 
-    {
-      TOKEN t = CurTok;
-      // Consume the TYPE token.
-      getNextToken();
-
-      return std::make_unique<VarTypeNode>(t);
-    }
-    default:
-      return nullptr;
-  }
-}
-
-static std::unique_ptr<FunTypeNode> parseFunType() 
-{
-  if (CurTok.type == VOID_TOK) 
-  {
-    // Consume the VOID token.
-    getNextToken();
-
-    return std::make_unique<FunTypeNode>();
-  }
-
-  auto vt = parseVarType();
-  if (!vt) return nullptr;
-
-  return std::make_unique<FunTypeNode>(std::move(vt));
+  return std::make_unique<FunDeclNode>(std::move(p), std::move(bs), *ft, t);
 }
 
 static std::unique_ptr<ParamsNode> parseParams() 
@@ -281,7 +246,7 @@ static std::unique_ptr<ParamNode> parseParam()
   // Consume the IDENT token.
   getNextToken();
 
-  return std::make_unique<ParamNode>(std::move(vt), std::move(t));
+  return std::make_unique<ParamNode>(*vt, t);
 }
 
 static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
@@ -758,3 +723,37 @@ static std::unique_ptr<LiteralNode> parseLiteral()
       return nullptr;
   }
 }
+
+static std::unique_ptr<TOKEN> parseVarType() 
+{
+  switch (CurTok.type)
+  {
+    case BOOL_TOK:
+    case INT_TOK:
+    case FLOAT_TOK: 
+    {
+      TOKEN t = CurTok;
+      // Consume the TYPE token.
+      getNextToken();
+
+      return std::make_unique<TOKEN>(t);
+    }
+    default:
+      return nullptr;
+  }
+}
+
+static std::unique_ptr<TOKEN> parseFunType() 
+{
+  if (CurTok.type == VOID_TOK) 
+  {
+    TOKEN t = CurTok;
+    // Consume the VOID token.
+    getNextToken();
+
+    return std::make_unique<TOKEN>(t);
+  }
+
+  return parseVarType();
+}
+

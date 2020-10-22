@@ -185,43 +185,22 @@ class ArgsNode : public Node
     };
 };
 
-// VarTypeNode - Class for ...
-class VarTypeNode : public Node 
-{
-  private:
-    TOKEN tok;
-
-  public:
-    VarTypeNode(TOKEN tok) : tok(tok) {}
-    virtual Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<var_type> " + tok.lexeme + "\n";
-      return str;
-    };
-};
-
 // VarDeclNode - Class for ...
 class VarDeclNode : public Node 
 {
   private:
-    std::unique_ptr<VarTypeNode> vt;
+    TOKEN type;
     TOKEN id;
 
   public:
-    VarDeclNode(std::unique_ptr<VarTypeNode> vt, TOKEN id) : vt(std::move(vt)), id(id) {}
+    VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
     virtual Value *codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<var_decl> " + id.lexeme + "\n";
-      str += vt->to_string(indent + "  ");
-      return str;  
+      return indent + "<var_decl> " + type.lexeme + " " + id.lexeme + "\n";
     };
 };
 
@@ -414,19 +393,18 @@ class WhileStmtNode : public StmtNode
 class ParamNode : public Node 
 {
   private:
-    std::unique_ptr<VarTypeNode> vt;
+    TOKEN type;
     TOKEN id;
 
   public:
-    ParamNode(std::unique_ptr<VarTypeNode> vt, TOKEN id) : vt(std::move(vt)), id(id) {}
+    ParamNode(TOKEN type, TOKEN id) : type(type), id(id) {}
     virtual Value *codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<param> " + id.lexeme + "\n";
-      str += vt->to_string(indent + "  ");
+      std::string str = indent + "<param> " + type.lexeme + " " + id.lexeme + "\n";
       return str;
     };
 };
@@ -475,49 +453,27 @@ class ParamsNode : public Node
     };
 };
 
-// FunTypeNode - Class for ...
-class FunTypeNode : public Node 
-{
-  private:
-    std::unique_ptr<VarTypeNode> vt;
-
-  public:
-    FunTypeNode(std::unique_ptr<VarTypeNode> vt = nullptr) : vt(std::move(vt)) {}
-    virtual Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + (vt ? "<fun_type>\n" : "<fun_type> void\n");
-      if (vt) str += vt->to_string(indent + "  ");
-      return str;
-    };
-};
-
 // FunDeclNode - Class for ...
 class FunDeclNode : public Node 
 {
   private:
-    std::unique_ptr<FunTypeNode> ft;
     std::unique_ptr<ParamsNode> p;
     std::unique_ptr<BlockStmtNode> bs;
+    TOKEN type;
     TOKEN id;
 
   public:
-    FunDeclNode(std::unique_ptr<FunTypeNode> ft, 
-                std::unique_ptr<ParamsNode> p, 
+    FunDeclNode(std::unique_ptr<ParamsNode> p, 
                 std::unique_ptr<BlockStmtNode> bs,
-                TOKEN id
-    ) : ft(std::move(ft)), p(std::move(p)), bs(std::move(bs)), id(id) {}
+                TOKEN type, TOKEN id
+    ) : p(std::move(p)), bs(std::move(bs)), type(type), id(id) {}
     virtual Value *codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<fun_decl> " + id.lexeme + "\n";
-      str += ft->to_string(indent + "  ");
+      std::string str = indent + "<fun_decl> " + type.lexeme + " " + id.lexeme + "\n";
       str += p->to_string(indent + "  ");
       str += bs->to_string(indent + "  ");
       return str;
@@ -575,24 +531,21 @@ class DeclListNode : public Node
 class ExternNode : public Node 
 {
   private:
-    std::unique_ptr<FunTypeNode> ft;
     std::unique_ptr<ParamsNode> p;
+    TOKEN type;
     TOKEN id;
 
   public:
-    ExternNode(
-      std::unique_ptr<FunTypeNode> ft, std::unique_ptr<ParamsNode> p, TOKEN id
-    ) : ft(std::move(ft)), p(std::move(p)), id(id) {}
+    ExternNode(std::unique_ptr<ParamsNode> p, TOKEN type, TOKEN id
+    ) : p(std::move(p)), type(type), id(id) {}
     virtual Value *codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<extern> " + id.lexeme + "\n";
-      str += ft->to_string(indent + "  ");
-      if (p) str += p->to_string(indent + "  ");
-      return str;
+      std::string str = indent + "<extern> " + type.lexeme + " " + id.lexeme + "\n";
+      return p ?  str + p->to_string(indent + "  ") : str;
     };
 };
 
@@ -638,8 +591,8 @@ class ProgramNode : public Node
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<program>\n";
-      str += el->to_string(indent + "  ");
-      if (dl) str += dl->to_string(indent + "  ");
+      if (el) str += el->to_string(indent + "  ");
+      str += dl->to_string(indent + "  ");
       return str;
     };
 };
