@@ -42,7 +42,6 @@ static std::unique_ptr<ElseStmtNode> parseElseStmt();
 static std::unique_ptr<ReturnStmtNode> parseReturnStmt();
 static std::unique_ptr<ExprStmtNode> parseExprStmt();
 static std::unique_ptr<ArgsNode> parseArgs();
-static std::unique_ptr<ArgListNode> parseArgList();
 static std::unique_ptr<ExprNode> parseExpr();
 static std::unique_ptr<ExprNode> parseDisj();
 static std::unique_ptr<ExprNode> parseConj();

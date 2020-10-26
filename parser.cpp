@@ -459,42 +459,39 @@ static std::unique_ptr<ExprStmtNode> parseExprStmt()
 
 static std::unique_ptr<ArgsNode> parseArgs()
 {
-  switch (CurTok.type)
+  std::vector<std::unique_ptr<ExprNode>> args;
+  
+  while (true)
   {
-    case IDENT:  // FIRST(<expr>)
-    case MINUS:
-    case NOT:
-    case INT_LIT:
-    case FLOAT_LIT:
-    case BOOL_LIT:
+    switch (CurTok.type)
     {
-      auto al = parseArgList();
-      if (!al) return nullptr;
+      case IDENT:  // FIRST(<expr>)
+      case MINUS:
+      case NOT:
+      case INT_LIT:
+      case FLOAT_LIT:
+      case BOOL_LIT:
+      {
+        auto e = parseExpr();
+        if (!e) return NULL;
 
-      return std::make_unique<ArgsNode>(std::move(al));
+        args.push_back(std::move(e));
+
+        if (CurTok.type == COMMA)
+        {
+          // Consume the , token.
+          getNextToken();
+
+          // Break from the switch and cycle the loop again
+          break;
+        }
+
+        // Fall to the default case
+      }
+      default:
+        return std::make_unique<ArgsNode>(std::move(args));
     }
-    default:
-      return std::make_unique<ArgsNode>();
   }
-}
-
-static std::unique_ptr<ArgListNode> parseArgList()
-{
-  auto e = parseExpr();
-  if (!e) return nullptr;
-
-  if (CurTok.type == COMMA)
-  {
-    // Consume the , token.
-    getNextToken();
-
-    auto al = parseArgList();
-    if (!al) return nullptr;
-
-    return std::make_unique<ArgListNode>(std::move(e), std::move(al));
-  }
-
-  return std::make_unique<ArgListNode>(std::move(e));
 }
 
 static std::unique_ptr<ExprNode> parseExpr()

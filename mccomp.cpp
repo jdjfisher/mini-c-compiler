@@ -95,8 +95,19 @@ int main(int argc, char **argv) {
 
   // Run the parser now.
   auto p = parse();
-  std::cout << p->to_string(); 
-  fprintf(stderr, "Parsing Finished\n");
+
+  if (p)
+  {
+    std::cout << p->to_string();
+    fprintf(stderr, "Parsing Finished\n");
+  }
+  else
+  {
+    fprintf(stderr, "Failed Parsing\n");
+    return -1;
+  }
+  
+
 
   //********************* Start printing final IR **************************
   // Print out all of the generated code into a file called output.ll
@@ -106,7 +117,7 @@ int main(int argc, char **argv) {
   if (ec) 
   {
     errs() << "Could not open file: " << ec.message();
-    return 1;
+    return -1;
   }
   
   // module->print(errs(), nullptr); // print IR to terminal

@@ -89,18 +89,42 @@ class BinOpNode : public ExprNode
 
       switch (op.type) 
       {
-        // case OR
-        // case AND
+        case OR:
+          // return 
+          return NULL;
+        case AND:
+          // return 
+          return NULL;
         case PLUS:
           return builder.CreateFAdd(l_v, r_v, "addtmp");
         case MINUS:
           return builder.CreateFSub(l_v, r_v, "subtmp");
         case ASTERIX:
           return builder.CreateFMul(l_v, r_v, "multmp");
-        // case DIV
-        // case MOD
-        // case EQ
-        // case NE
+        case DIV:
+          return builder.CreateFDiv(l_v, r_v, "divtmp");
+        case MOD:
+          return builder.CreateFRem(l_v, r_v, "remtmp");
+        case EQ:
+        {
+          l_v = builder.CreateFCmpUEQ(l_v, r_v, "cmptmp");
+          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
+        }
+        case NE:
+        {
+          l_v = builder.CreateFCmpUNE(l_v, r_v, "cmptmp");
+          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
+        }
+        case LE:
+        {
+          l_v = builder.CreateFCmpULE(l_v, r_v, "cmptmp");
+          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
+        }
+        case GE:
+        {
+          l_v = builder.CreateFCmpUGE(l_v, r_v, "cmptmp");
+          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
+        }
         case LT:
         {
           l_v = builder.CreateFCmpULT(l_v, r_v, "cmptmp");
@@ -141,38 +165,14 @@ class AssignNode : public ExprNode
     };
 };
 
-// ArgListNode - Class for ...
-class ArgListNode : public Node 
-{
-  private:
-    std::unique_ptr<ExprNode> e;
-    std::unique_ptr<ArgListNode> al;
-
-  public:
-    ArgListNode(
-      std::unique_ptr<ExprNode> e, std::unique_ptr<ArgListNode> al = nullptr
-    ) : e(std::move(e)), al(std::move(al)) {}
-    virtual Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<arg_list>\n";
-      str += e->to_string(indent + "  ");
-      if (al) str += al->to_string(indent + "  ");
-      return str;
-    };
-};
-
 // ArgsNode - Class for ...
 class ArgsNode : public Node 
 {
   private:
-    std::unique_ptr<ArgListNode> al;
+    std::vector<std::unique_ptr<ExprNode>> args;
 
   public:
-    ArgsNode(std::unique_ptr<ArgListNode> al = nullptr) : al(std::move(al)) {}
+    ArgsNode(std::vector<std::unique_ptr<ExprNode>> args) : args(std::move(args)) {}
     virtual Value *codegen() override
     {
       return NULL;
@@ -180,7 +180,10 @@ class ArgsNode : public Node
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<args>\n";
-      str += al->to_string(indent + "  ");
+      for (const auto& arg : args)
+      {
+        str += arg->to_string(indent + "  ");
+      }
       return str;
     };
 };
@@ -644,6 +647,11 @@ class VariableNode : public LiteralNode
     VariableNode(TOKEN id): id(id) {}
     virtual Value *codegen() override
     {
+      // // Look this variable up in the function.
+      // Value *v = vars[id.lexeme];
+      // if (!v) return nullptr; // Unknown variable name
+      // // Load the value.
+      // return builder.CreateLoad(v, id.lexeme.c_str());
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -667,22 +675,19 @@ class CallNode : public LiteralNode
       Function *f = module->getFunction(id.lexeme);
       if (!f) return nullptr; // Unknown function referenced
 
-      // If argument mismatch error.
       // if (f->arg_size() != args.size()) return nullptr; // Incorrect number of arguments passed
 
-      // std::vector<Value *> ArgsV;
-      // for (unsigned i = 0, e = Args.size(); i != e; ++i) {
-      //   ArgsV.push_back(Args[i]->codegen());
-      //   if (!ArgsV.back()) return nullptr;
+      std::vector<Value *> a_v;
+      // for (unsigned i = 0, e = a->args.size(); i != e; ++i) {
+      //   a_v.push_back(a->args[i]->codegen());
+      //   if (!a_v.back()) return nullptr;
       // }
 
-      // return Builder.CreateCall(CalleeF, ArgsV, "calltmp");
-
-      return NULL;
+      return builder.CreateCall(f, a_v, "calltmp");
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<call> " + id.lexeme + "\n";
+      return indent + "<call> " + id.lexeme + "\n" + a->to_string(indent + "  ");
     };
 };
 
