@@ -98,17 +98,14 @@ int main(int argc, char **argv) {
 
   if (p)
   {
-    std::cout << p->to_string();
-    fprintf(stderr, "Parsing Finished\n");
+    std::cout << p->to_string() << "Parsing Finished\n";
   }
   else
   {
-    fprintf(stderr, "Failed Parsing\n");
+    std::cout << "Parsing Failed\n";
     return -1;
   }
   
-
-
   //********************* Start printing final IR **************************
   // Print out all of the generated code into a file called output.ll
   std::error_code ec;

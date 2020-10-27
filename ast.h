@@ -49,6 +49,7 @@ using namespace llvm;
 extern LLVMContext context;
 extern IRBuilder<> builder;
 extern std::unique_ptr<Module> module;
+static std::map<std::string, Value *> namedValues;
 
 //===----------------------------------------------------------------------===//
 // AST nodes
@@ -65,9 +66,6 @@ class Node
 
 // ExprNode - Class for ...
 class ExprNode : public Node {};
-
-// LiteralNode - Class for ...
-class LiteralNode : public ExprNode {};
 
 // FactorNode - Class for ...
 class BinOpNode : public ExprNode 
@@ -91,10 +89,10 @@ class BinOpNode : public ExprNode
       {
         case OR:
           // return 
-          return NULL;
+          return nullptr;
         case AND:
           // return 
-          return NULL;
+          return nullptr;
         case PLUS:
           return builder.CreateFAdd(l_v, r_v, "addtmp");
         case MINUS:
@@ -106,37 +104,19 @@ class BinOpNode : public ExprNode
         case MOD:
           return builder.CreateFRem(l_v, r_v, "remtmp");
         case EQ:
-        {
-          l_v = builder.CreateFCmpUEQ(l_v, r_v, "cmptmp");
-          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
-        }
+          return builder.CreateFCmpUEQ(l_v, r_v, "cmptmp");
         case NE:
-        {
-          l_v = builder.CreateFCmpUNE(l_v, r_v, "cmptmp");
-          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
-        }
+          return builder.CreateFCmpUNE(l_v, r_v, "cmptmp");
         case LE:
-        {
-          l_v = builder.CreateFCmpULE(l_v, r_v, "cmptmp");
-          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
-        }
+          return builder.CreateFCmpULE(l_v, r_v, "cmptmp");
         case GE:
-        {
-          l_v = builder.CreateFCmpUGE(l_v, r_v, "cmptmp");
-          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
-        }
+          return builder.CreateFCmpUGE(l_v, r_v, "cmptmp");
         case LT:
-        {
-          l_v = builder.CreateFCmpULT(l_v, r_v, "cmptmp");
-          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
-        }
+          return builder.CreateFCmpULT(l_v, r_v, "cmptmp");
         case GT:
-        {
-          l_v = builder.CreateFCmpUGT(l_v, r_v, "cmptmp");
-          return builder.CreateUIToFP(l_v, Type::getDoubleTy(context), "booltmp");
-        }
+          return builder.CreateFCmpUGT(l_v, r_v, "cmptmp");
         default:
-          return nullptr; // invalid binary operator"
+          return nullptr; // invalid binary operator
       }
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -358,6 +338,45 @@ class IfStmtNode : public StmtNode
     ) : e(std::move(e)), bs(std::move(bs)), es(std::move(es)) {}
     virtual Value *codegen() override
     {
+      Value *e_v = e->codegen();
+      if (!e_v) return nullptr;
+
+      // Convert condition to a bool by comparing non-equal to 0.0.
+      e_v = builder.CreateFCmpONE(e_v, ConstantFP::get(context, APFloat(0.0)), "ifcond");
+
+      Function *f = builder.GetInsertBlock()->getParent();
+
+      // // Create blocks for the then and else cases.  Insert the 'then' block at the end of the function.
+      // BasicBlock *then_bb = BasicBlock::Create(context, "then", function);
+      // BasicBlock *else_bb = BasicBlock::Create(context, "else");
+      // BasicBlock *merge_bb = BasicBlock::Create(context, "ifcont");
+
+      // builder.CreateCondBr(e_v, then_bb, else_bb);
+
+      // // Emit then value.
+      // builder.SetInsertPoint(then_bb);
+
+      // Value *then_v = bs->codegen();
+      // if (!then_v) return nullptr;
+
+      // builder.CreateBr(merge_bb);
+      // // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
+      // then_bb = builder.GetInsertBlock();
+      // // Emit else block.
+      // f->getBasicBlockList().push_back(else_bb);
+      // builder.SetInsertPoint(else_bb);
+
+      // Value *else_v = Else->codegen();
+      // if (!else_v) return nullptr;
+
+      // builder.CreateBr(merge_bb);
+      // // codegen of 'Else' can change the current block, update else_bb for the PHI.
+      // else_bb = Builder.GetInsertBlock();
+
+      // // Emit merge block.
+      // f->getBasicBlockList().push_back(merge_bb);
+      // builder.SetInsertPoint(merge_bb);
+
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -412,38 +431,14 @@ class ParamNode : public Node
     };
 };
 
-// ParamListNode - Class for ...
-class ParamListNode : public Node 
-{
-  private:
-    std::unique_ptr<ParamNode> p;
-    std::unique_ptr<ParamListNode> pl;
-
-  public:
-    ParamListNode(
-      std::unique_ptr<ParamNode> p, std::unique_ptr<ParamListNode> pl = nullptr
-    ) : p(std::move(p)), pl(std::move(pl)) {}
-    virtual Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<param_list>\n";
-      str += p->to_string(indent + "  ");
-      if (pl) str += pl->to_string(indent + "  ");
-      return str;
-    };
-};
-
 // ParamsNode - Class for ...
 class ParamsNode : public Node 
 {
   private:
-    std::unique_ptr<ParamListNode> pl;
+    std::vector<std::unique_ptr<ParamNode>> params;
 
   public:
-    ParamsNode(std::unique_ptr<ParamListNode> pl = nullptr) : pl(std::move(pl)) {}
+    ParamsNode(std::vector<std::unique_ptr<ParamNode>> params) : params(std::move(params)) {}
     virtual Value *codegen() override
     {
       return NULL;
@@ -451,7 +446,10 @@ class ParamsNode : public Node
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<params>\n";
-      str += pl->to_string(indent + "  ");
+      for (const auto& param : params)
+      {
+        str += param->to_string(indent + "  ");
+      }
       return str;
     };
 };
@@ -472,6 +470,16 @@ class FunDeclNode : public Node
     ) : p(std::move(p)), bs(std::move(bs)), type(type), id(id) {}
     virtual Value *codegen() override
     {
+      // First, check for an existing function from a previous 'extern' declaration.
+      Function *f = module->getFunction(id.lexeme);
+
+      // if (!f)
+      //   f = Proto->codegen();
+
+      if (!f) return nullptr;
+
+      if (!f->empty()) return nullptr; // Function cannot be redefined.
+
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -543,6 +551,20 @@ class ExternNode : public Node
     ) : p(std::move(p)), type(type), id(id) {}
     virtual Value *codegen() override
     {
+      // std::vector<Type*> Doubles(Args.size(), Type::getDoubleTy(context));
+      // FunctionType *ft = FunctionType::get(Type::getDoubleTy(context), Doubles, false);
+
+      // Function *f = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
+
+      // Set names for all arguments.
+      // unsigned i = 0;
+      // for (auto &arg : f->args())
+      // {
+      //   arg.setName(p->params[i++]);
+      // }
+
+      // return f;
+
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -601,17 +623,28 @@ class ProgramNode : public Node
 };
 
 // UnaryNode - Class for ...
-class UnaryNode : public LiteralNode 
+class UnaryNode : public ExprNode 
 {
   private:
     TOKEN op;
-    std::unique_ptr<LiteralNode> l;
+    std::unique_ptr<ExprNode> l;
 
   public:
-    UnaryNode(TOKEN op, std::unique_ptr<LiteralNode> l) : op(op), l(std::move(l)) {}
+    UnaryNode(TOKEN op, std::unique_ptr<ExprNode> l) : op(op), l(std::move(l)) {}
     virtual Value *codegen() override
     {
-      return NULL;
+      Value *l_v = l->codegen();
+      if (!l_v) return nullptr;
+
+      switch (op.type) 
+      {
+        case NOT:
+          return nullptr;
+        case MINUS:
+          return nullptr;
+        default:
+          return nullptr;  // invalid unary operator
+      }
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -619,26 +652,8 @@ class UnaryNode : public LiteralNode
     };
 };
 
-// ParenthesesNode - Class for ...
-class ParenthesesNode : public LiteralNode 
-{
-  private:
-    std::unique_ptr<ExprNode> e;
-
-  public:
-    ParenthesesNode(std::unique_ptr<ExprNode> e) : e(std::move(e)) {}
-    virtual Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return indent + "<parentheses>\n" + e->to_string(indent + "  ");
-    };
-};
-
 // VariableNode - Class for variable identifier references like sum, user_name
-class VariableNode : public LiteralNode 
+class VariableNode : public ExprNode 
 {
   private:
     TOKEN id;
@@ -647,12 +662,11 @@ class VariableNode : public LiteralNode
     VariableNode(TOKEN id): id(id) {}
     virtual Value *codegen() override
     {
-      // // Look this variable up in the function.
-      // Value *v = vars[id.lexeme];
-      // if (!v) return nullptr; // Unknown variable name
-      // // Load the value.
-      // return builder.CreateLoad(v, id.lexeme.c_str());
-      return NULL;
+      // Look this variable up.
+      Value *v = namedValues[id.lexeme];
+      if (!v) return nullptr; // Unknown variable name.
+
+      return v;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -661,7 +675,7 @@ class VariableNode : public LiteralNode
 };
 
 // CallNode - Class for ...
-class CallNode : public LiteralNode 
+class CallNode : public ExprNode 
 {
   private:
     TOKEN id;
@@ -692,7 +706,7 @@ class CallNode : public LiteralNode
 };
 
 // IntNode - Class for integer literals like 1, 2, 10,
-class IntNode : public LiteralNode 
+class IntNode : public ExprNode 
 {
   private:
     int val;
@@ -704,8 +718,7 @@ class IntNode : public LiteralNode
     }
     virtual Value *codegen() override
     {
-      // return ConstantFP::get(context, APInt(val));
-      return NULL;
+      return ConstantInt::get(context, APInt(sizeof(int)*8, val));
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -714,7 +727,7 @@ class IntNode : public LiteralNode
 };
 
 // FloatNode - Class for floating point literals like ...
-class FloatNode : public LiteralNode 
+class FloatNode : public ExprNode 
 {
   private:
     float val;
@@ -735,7 +748,7 @@ class FloatNode : public LiteralNode
 };
 
 // BoolNode - Class for boolean literals true, false
-class BoolNode : public LiteralNode 
+class BoolNode : public ExprNode 
 {
   private:
     bool val;
@@ -747,8 +760,7 @@ class BoolNode : public LiteralNode
     }
     virtual Value *codegen() override
     {
-      // return ConstantFP::get(context, APInt(int(val)));
-      return NULL;
+      return ConstantInt::get(context, APInt(sizeof(bool)*8, val));
     };
     virtual std::string to_string(std::string indent = "") const override
     {

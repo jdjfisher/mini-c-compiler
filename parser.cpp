@@ -8,11 +8,8 @@
 // Parser
 //===----------------------------------------------------------------------===//
 
-/// CurTok/getNextToken - Provide a simple token buffer.  CurTok is the current
-/// token the parser is looking at.  getNextToken reads another token from the
-/// lexer and updates CurTok with its results.
 static TOKEN CurTok;
-static std::deque<TOKEN> tok_buffer;
+static std::deque<TOKEN> TokBuffer;
 
 TOKEN getCurrentToken() 
 {
@@ -21,21 +18,18 @@ TOKEN getCurrentToken()
 
 TOKEN getNextToken() 
 {
-  if (tok_buffer.size() == 0)
-    tok_buffer.push_back(lexToken());
+  if (TokBuffer.size() == 0)
+    TokBuffer.push_back(lexToken());
 
-  CurTok = tok_buffer.front();
-  tok_buffer.pop_front();
+  CurTok = TokBuffer.front();
+  TokBuffer.pop_front();
 
   return CurTok;
 }
 
 static void putBackToken(TOKEN token) 
 { 
-  // if (CurTok != NULL) 
-  // {
-  tok_buffer.push_front(CurTok); 
-  // }
+  TokBuffer.push_front(CurTok); 
 
   CurTok = token;
 }
@@ -201,39 +195,30 @@ static std::unique_ptr<FunDeclNode> parseFunDecl()
 
 static std::unique_ptr<ParamsNode> parseParams() 
 {
-  if (CurTok.type == INT_TOK || CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
-  {
-    auto pl = parseParamList();
-    if (!pl) return nullptr;
+  std::vector<std::unique_ptr<ParamNode>> params;
 
-    return std::make_unique<ParamsNode>(std::move(pl));
-  }
-  else if (CurTok.type == VOID_TOK) 
+  if (CurTok.type == VOID_TOK) 
   {
     // Consume the void token.
     getNextToken();
   }
-
-  return std::make_unique<ParamsNode>();
-}
-
-static std::unique_ptr<ParamListNode> parseParamList() 
-{
-  auto p = parseParam();
-  if (!p) return nullptr;
-
-  if (CurTok.type == COMMA)
+  else
   {
-    // Consume the , token.
-    getNextToken();
+    while (CurTok.type == INT_TOK || 
+           CurTok.type == FLOAT_TOK || 
+           CurTok.type == BOOL_TOK)
+    {
+      auto p = parseParam();
+      if (!p) return nullptr;
 
-    auto pl = parseParamList();
-    if (!pl) return nullptr;
-
-    return std::make_unique<ParamListNode>(std::move(p), std::move(pl));
+      if (CurTok.type != COMMA) break;
+      
+      // Consume the , token.
+      getNextToken();
+    }
   }
 
-  return std::make_unique<ParamListNode>(std::move(p));
+  return std::make_unique<ParamsNode>(std::move(params));
 }
 
 static std::unique_ptr<ParamNode> parseParam() 
@@ -639,7 +624,7 @@ static std::unique_ptr<ExprNode> parseFactor()
   return std::move(l);
 }
 
-static std::unique_ptr<LiteralNode> parseLiteral()
+static std::unique_ptr<ExprNode> parseLiteral()
 {
   switch (CurTok.type)
   {
@@ -667,7 +652,7 @@ static std::unique_ptr<LiteralNode> parseLiteral()
       // Consume the ) token.
       getNextToken();
 
-      return std::make_unique<ParenthesesNode>(std::move(e));
+      return std::move(e); // TODO: sort
     }
     case IDENT:
     {
