@@ -514,26 +514,26 @@ class DeclNode : public Node
     };
 };
 
-// DeclListNode - Class for ...
-class DeclListNode : public Node 
+// DeclsNode - Class for ...
+class DeclsNode : public Node 
 {
   private:
     std::unique_ptr<DeclNode> d;
-    std::unique_ptr<DeclListNode> dl;
+    std::unique_ptr<DeclsNode> ds;
 
   public:
-    DeclListNode(
-      std::unique_ptr<DeclNode> d, std::unique_ptr<DeclListNode> dl = nullptr
-    ) : d(std::move(d)), dl(std::move(dl)) {}
+    DeclsNode(
+      std::unique_ptr<DeclNode> d, std::unique_ptr<DeclsNode> ds = nullptr
+    ) : d(std::move(d)), ds(std::move(ds)) {}
     virtual Value *codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<decl_list>\n";
+      std::string str = indent + "<decls>\n";
       str += d->to_string(indent + "  ");
-      if (dl) str += dl->to_string(indent + "  ");
+      if (ds) str += ds->to_string(indent + "  ");
       return str;
     };
 };
@@ -574,26 +574,26 @@ class ExternNode : public Node
     };
 };
 
-// ExternListNode - Class for ...
-class ExternListNode : public Node 
+// ExternsNode - Class for ...
+class ExternsNode : public Node 
 {
   private:
     std::unique_ptr<ExternNode> e;
-    std::unique_ptr<ExternListNode> el;
+    std::unique_ptr<ExternsNode> es;
 
 public:
-  ExternListNode(
-    std::unique_ptr<ExternNode> e, std::unique_ptr<ExternListNode> el = nullptr
-  ) : e(std::move(e)), el(std::move(el)) {}
+  ExternsNode(
+    std::unique_ptr<ExternNode> e, std::unique_ptr<ExternsNode> es = nullptr
+  ) : e(std::move(e)), es(std::move(es)) {}
   virtual Value *codegen() override
   {
     return NULL;
   };
   virtual std::string to_string(std::string indent = "") const override
   {
-    std::string str = indent + "<extern_list>\n";
+    std::string str = indent + "<externs>\n";
     str += e->to_string(indent + "  ");
-    if (el) str += el->to_string(indent + "  ");
+    if (es) str += es->to_string(indent + "  ");
     return str;
   };
 };
@@ -602,12 +602,12 @@ public:
 class ProgramNode : public Node 
 {
   private:
-    std::unique_ptr<ExternListNode> el;
-    std::unique_ptr<DeclListNode> dl;
+    std::unique_ptr<ExternsNode> el;
+    std::unique_ptr<DeclsNode> dl;
 
   public:
     ProgramNode(
-      std::unique_ptr<ExternListNode> el, std::unique_ptr<DeclListNode> dl
+      std::unique_ptr<ExternsNode> el, std::unique_ptr<DeclsNode> dl
     ) : el(std::move(el)), dl(std::move(dl)) {}
     virtual Value *codegen() override
     {

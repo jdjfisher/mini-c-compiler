@@ -23,9 +23,9 @@ TOKEN getNextToken();
 std::unique_ptr<ProgramNode> parse();
 
 static std::unique_ptr<ProgramNode> parseProgram();
-static std::unique_ptr<ExternListNode> parseExternList();
+static std::unique_ptr<ExternsNode> parseExterns();
 static std::unique_ptr<ExternNode> parseExtern();
-static std::unique_ptr<DeclListNode> parseDeclList();
+static std::unique_ptr<DeclsNode> parseDecls();
 static std::unique_ptr<DeclNode> parseDecl();
 static std::unique_ptr<VarDeclNode> parseVarDecl();
 static std::unique_ptr<FunDeclNode> parseFunDecl();

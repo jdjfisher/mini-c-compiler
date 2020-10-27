@@ -1,14 +1,14 @@
 ```
-program ::= extern_list decl_list
-          | decl_list
+program ::= externs decls
+          | decls
 
-extern_list ::= extern extern_list
-              | extern
+externs ::= extern externs
+          | extern
               
 extern ::= "extern" fun_type IDENT "(" params ")" ";"
 
-decl_list ::= decl decl_list
-            | decl
+decls ::= decl decls
+        | decl
 
 decl ::= var_decl
        | fun_decl

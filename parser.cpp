@@ -44,34 +44,34 @@ std::unique_ptr<ProgramNode> parse()
 
 static std::unique_ptr<ProgramNode> parseProgram() 
 {
-  std::unique_ptr<ExternListNode> el;
+  std::unique_ptr<ExternsNode> es;
 
   if (CurTok.type == EXTERN)
   {
-    el = parseExternList();
-    if (!el) return nullptr;
+    es = parseExterns();
+    if (!es) return nullptr;
   }
 
-  auto dl = parseDeclList();
-  if (!dl) return nullptr;
+  auto ds = parseDecls();
+  if (!ds) return nullptr;
 
-  return std::make_unique<ProgramNode>(std::move(el), std::move(dl));
+  return std::make_unique<ProgramNode>(std::move(es), std::move(ds));
 }
 
-static std::unique_ptr<ExternListNode> parseExternList() 
+static std::unique_ptr<ExternsNode> parseExterns() 
 {
   auto e = parseExtern();
   if (!e) return nullptr;
 
   if (CurTok.type == EXTERN)
   {
-    auto el = parseExternList();
+    auto el = parseExterns();
     if (!el) return nullptr;
 
-    return std::make_unique<ExternListNode>(std::move(e), std::move(el));
+    return std::make_unique<ExternsNode>(std::move(e), std::move(el));
   }
 
-  return std::make_unique<ExternListNode>(std::move(e));
+  return std::make_unique<ExternsNode>(std::move(e));
 }
 
 static std::unique_ptr<ExternNode> parseExtern() 
@@ -106,7 +106,7 @@ static std::unique_ptr<ExternNode> parseExtern()
   return std::make_unique<ExternNode>(std::move(p), *ft, t);
 }
 
-static std::unique_ptr<DeclListNode> parseDeclList() 
+static std::unique_ptr<DeclsNode> parseDecls() 
 {
   auto d = parseDecl();
   if (!d) return nullptr;
@@ -114,13 +114,13 @@ static std::unique_ptr<DeclListNode> parseDeclList()
   if (CurTok.type == VOID_TOK  || CurTok.type == INT_TOK ||
       CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
   {
-    auto dl = parseDeclList();
+    auto dl = parseDecls();
     if (!dl) return nullptr;
 
-    return std::make_unique<DeclListNode>(std::move(d), std::move(dl));
+    return std::make_unique<DeclsNode>(std::move(d), std::move(dl));
   }
 
-  return std::make_unique<DeclListNode>(std::move(d));
+  return std::make_unique<DeclsNode>(std::move(d));
 }
 
 static std::unique_ptr<DeclNode> parseDecl()
