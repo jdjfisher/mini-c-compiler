@@ -74,17 +74,29 @@ static std::unique_ptr<ExternsNode> parseExterns()
   return std::make_unique<ExternsNode>(std::move(e));
 }
 
-static std::unique_ptr<ExternNode> parseExtern() 
+static std::unique_ptr<FunSignNode> parseExtern() 
 {
   if (CurTok.type != EXTERN) return nullptr;
   // Consume the EXTERN token.
   getNextToken();
 
+  auto fs = parseFunSign();
+  if (!fs) return nullptr;
+
+  if (CurTok.type != SC) return nullptr; 
+  // Consume the ; token.
+  getNextToken();
+
+  return std::move(fs);
+}
+
+static std::unique_ptr<FunSignNode> parseFunSign() 
+{
   auto ft = parseFunType();
   if (!ft) return nullptr; 
 
   if (CurTok.type != IDENT) return nullptr; 
-  TOKEN t = CurTok;
+  TOKEN id = CurTok;
   // Consume the IDENT token.
   getNextToken();
 
@@ -92,18 +104,36 @@ static std::unique_ptr<ExternNode> parseExtern()
   // Consume the ( token.
   getNextToken();
 
-  auto p = parseParams();
-  if (!p) return nullptr; 
+  // Parse params.
+  std::vector<std::unique_ptr<ParamNode>> params;
+
+  if (CurTok.type == VOID_TOK) 
+  {
+    // Consume the void token.
+    getNextToken();
+  }
+  else
+  {
+    while (CurTok.type == INT_TOK || 
+           CurTok.type == FLOAT_TOK || 
+           CurTok.type == BOOL_TOK)
+    {
+      auto p = parseParam();
+      if (!p) return nullptr;
+
+      if (CurTok.type == COMMA)
+      {
+        // Consume the , token.
+        getNextToken();
+      }
+    }
+  }
 
   if (CurTok.type != RPAR) return nullptr; 
   // Consume the ) token.
   getNextToken();
 
-  if (CurTok.type != SC) return nullptr; 
-  // Consume the ; token.
-  getNextToken();
-
-  return std::make_unique<ExternNode>(std::move(p), *ft, t);
+  return std::make_unique<FunSignNode>(*ft, id, std::move(params));
 }
 
 static std::unique_ptr<DeclsNode> parseDecls() 
@@ -168,57 +198,13 @@ static std::unique_ptr<VarDeclNode> parseVarDecl()
 
 static std::unique_ptr<FunDeclNode> parseFunDecl() 
 {
-  auto ft = parseFunType();
-  if (!ft) return nullptr;
-
-  if (CurTok.type != IDENT) return nullptr;
-  TOKEN t = CurTok;
-  // Consume the IDENT token.
-  getNextToken();
-
-  if (CurTok.type != LPAR) return nullptr;
-  // Consume the ( token.
-  getNextToken(); 
-
-  auto p = parseParams();
-  if (!p) return nullptr;
-
-  if (CurTok.type != RPAR) return nullptr;
-  // Consume the ) token.
-  getNextToken(); 
+  auto fs = parseFunSign();
+  if (!fs) return nullptr;
 
   auto bs = parseBlockStmt();
   if (!bs) return nullptr;
 
-  return std::make_unique<FunDeclNode>(std::move(p), std::move(bs), *ft, t);
-}
-
-static std::unique_ptr<ParamsNode> parseParams() 
-{
-  std::vector<std::unique_ptr<ParamNode>> params;
-
-  if (CurTok.type == VOID_TOK) 
-  {
-    // Consume the void token.
-    getNextToken();
-  }
-  else
-  {
-    while (CurTok.type == INT_TOK || 
-           CurTok.type == FLOAT_TOK || 
-           CurTok.type == BOOL_TOK)
-    {
-      auto p = parseParam();
-      if (!p) return nullptr;
-
-      if (CurTok.type != COMMA) break;
-      
-      // Consume the , token.
-      getNextToken();
-    }
-  }
-
-  return std::make_unique<ParamsNode>(std::move(params));
+  return std::make_unique<FunDeclNode>(std::move(fs), std::move(bs));
 }
 
 static std::unique_ptr<ParamNode> parseParam() 
@@ -442,43 +428,6 @@ static std::unique_ptr<ExprStmtNode> parseExprStmt()
   return std::make_unique<ExprStmtNode>(std::move(e));
 }
 
-static std::unique_ptr<ArgsNode> parseArgs()
-{
-  std::vector<std::unique_ptr<ExprNode>> args;
-  
-  while (true)
-  {
-    switch (CurTok.type)
-    {
-      case IDENT:  // FIRST(<expr>)
-      case MINUS:
-      case NOT:
-      case INT_LIT:
-      case FLOAT_LIT:
-      case BOOL_LIT:
-      {
-        auto e = parseExpr();
-        if (!e) return NULL;
-
-        args.push_back(std::move(e));
-
-        if (CurTok.type == COMMA)
-        {
-          // Consume the , token.
-          getNextToken();
-
-          // Break from the switch and cycle the loop again
-          break;
-        }
-
-        // Fall to the default case
-      }
-      default:
-        return std::make_unique<ArgsNode>(std::move(args));
-    }
-  }
-}
-
 static std::unique_ptr<ExprNode> parseExpr()
 {
   // Store the current token, look-ahead at the next.
@@ -665,14 +614,30 @@ static std::unique_ptr<ExprNode> parseLiteral()
         // Consume the ( token.
         getNextToken();
 
-        auto a = parseArgs();
-        if (!a) return nullptr;
+        // Parse args.
+        std::vector<std::unique_ptr<ExprNode>> args;
+           
+        while (CurTok.type == IDENT || CurTok.type == MINUS ||
+               CurTok.type == NOT || CurTok.type == INT_LIT ||
+               CurTok.type == FLOAT_LIT || CurTok.type == BOOL_LIT)
+        {     
+          auto e = parseExpr();
+          if (!e) return NULL;
+
+          args.push_back(std::move(e));
+
+          if (CurTok.type == COMMA)
+          {
+            // Consume the , token.
+            getNextToken();
+          }
+        }
 
         if (CurTok.type != RPAR) return nullptr;
         // Consume the ( token.
         getNextToken();
 
-        return std::make_unique<CallNode>(id, std::move(a));
+        return std::make_unique<CallNode>(id, std::move(args));
       }
 
       return std::make_unique<VariableNode>(id);

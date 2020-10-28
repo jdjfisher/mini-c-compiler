@@ -51,6 +51,24 @@ extern IRBuilder<> builder;
 extern std::unique_ptr<Module> module;
 static std::map<std::string, Value *> namedValues;
 
+
+// Type helper TODO: move/cleanup
+static Type* typeLookup(int type)
+{
+  switch (type)
+  {
+    case VOID_TOK:
+      return Type::getVoidTy(context);
+    case FLOAT_TOK:
+      return Type::getFloatTy(context);
+    case INT_TOK:
+    case BOOL_TOK:
+      return Type::getFloatTy(context); // TODO: sort
+    default:
+      return nullptr;
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // AST nodes
 //===----------------------------------------------------------------------===//
@@ -60,7 +78,7 @@ class Node
 {
   public:
     virtual ~Node() {}
-    virtual Value *codegen() = 0;
+    virtual Value* codegen() = 0;
     virtual std::string to_string(std::string indent = "") const;
 };
 
@@ -79,7 +97,7 @@ class BinOpNode : public ExprNode
     BinOpNode(
       std::unique_ptr<ExprNode> l, std::unique_ptr<ExprNode> r, TOKEN op
     ) : l(std::move(l)), r(std::move(r)), op(op) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       Value *l_v = l->codegen();
       Value *r_v = r->codegen();
@@ -88,11 +106,9 @@ class BinOpNode : public ExprNode
       switch (op.type) 
       {
         case OR:
-          // return 
-          return nullptr;
+          return nullptr; // TODO: finish
         case AND:
-          // return 
-          return nullptr;
+          return nullptr; // TODO: finish
         case PLUS:
           return builder.CreateFAdd(l_v, r_v, "addtmp");
         case MINUS:
@@ -135,36 +151,13 @@ class AssignNode : public ExprNode
 
   public:
     AssignNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<assign> " + id.lexeme + "\n" + e->to_string(indent + "  ");
-    };
-};
-
-// ArgsNode - Class for ...
-class ArgsNode : public Node 
-{
-  private:
-    std::vector<std::unique_ptr<ExprNode>> args;
-
-  public:
-    ArgsNode(std::vector<std::unique_ptr<ExprNode>> args) : args(std::move(args)) {}
-    virtual Value *codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<args>\n";
-      for (const auto& arg : args)
-      {
-        str += arg->to_string(indent + "  ");
-      }
-      return str;
     };
 };
 
@@ -177,7 +170,7 @@ class VarDeclNode : public Node
 
   public:
     VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -199,7 +192,7 @@ class LocalDeclsNode : public Node
     LocalDeclsNode(
       std::unique_ptr<VarDeclNode> vd, std::unique_ptr<LocalDeclsNode> lds
     ) : vd(std::move(vd)), lds(std::move(lds)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -227,7 +220,7 @@ class StmtListNode : public Node
     StmtListNode(
       std::unique_ptr<StmtNode> s, std::unique_ptr<StmtListNode> sl
     ) : s(std::move(s)), sl(std::move(sl)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -251,7 +244,7 @@ class BlockStmtNode : public StmtNode
     BlockStmtNode(
       std::unique_ptr<LocalDeclsNode> lds, std::unique_ptr<StmtListNode> sl
     ) : lds(std::move(lds)), sl(std::move(sl)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -272,7 +265,7 @@ class ExprStmtNode : public StmtNode
 
   public:
     ExprStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -292,7 +285,7 @@ class ReturnStmtNode : public StmtNode
 
   public:
     ReturnStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -312,7 +305,7 @@ class ElseStmtNode : public StmtNode
 
   public:
     ElseStmtNode(std::unique_ptr<BlockStmtNode> bs = nullptr) : bs(std::move(bs)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -336,7 +329,7 @@ class IfStmtNode : public StmtNode
     IfStmtNode(
       std::unique_ptr<ExprNode> e, std::unique_ptr<BlockStmtNode> bs, std::unique_ptr<ElseStmtNode> es
     ) : e(std::move(e)), bs(std::move(bs)), es(std::move(es)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       Value *e_v = e->codegen();
       if (!e_v) return nullptr;
@@ -398,7 +391,7 @@ class WhileStmtNode : public StmtNode
 
   public:
     WhileStmtNode(std::unique_ptr<ExprNode> e, std::unique_ptr<StmtNode> s) : e(std::move(e)), s(std::move(s)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -420,7 +413,7 @@ class ParamNode : public Node
 
   public:
     ParamNode(TOKEN type, TOKEN id) : type(type), id(id) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -429,65 +422,114 @@ class ParamNode : public Node
       std::string str = indent + "<param> " + type.lexeme + " " + id.lexeme + "\n";
       return str;
     };
+    std::string getName() { return id.lexeme; };
 };
 
-// ParamsNode - Class for ...
-class ParamsNode : public Node 
+// FunSignNode - Class for ...
+class FunSignNode : public Node 
 {
   private:
+    TOKEN type;
+    TOKEN id;
     std::vector<std::unique_ptr<ParamNode>> params;
 
   public:
-    ParamsNode(std::vector<std::unique_ptr<ParamNode>> params) : params(std::move(params)) {}
-    virtual Value *codegen() override
+    FunSignNode(
+      TOKEN type, 
+      TOKEN id, 
+      std::vector<std::unique_ptr<ParamNode>> params
+    ) : type(type), id(id), params(std::move(params)) 
+    {}
+    virtual Value* codegen() override
     {
-      return NULL;
+      // 
+      Type* returnType = typeLookup(type.type);
+      std::vector<Type*> argTypes;
+ 
+      for (const auto& param : params)
+      {
+        // argTypes.push_back(param); // TODO: get type
+      }
+    
+      // Create a new function type
+      FunctionType *ft = FunctionType::get(returnType, argTypes, false);
+      Function *f = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
+
+      // Set names for all arguments.
+      unsigned i = 0;
+      for (auto& arg : f->args())
+      {
+        arg.setName(params[i++]->getName()); 
+      }
+
+      return f;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<params>\n";
+      std::string str = indent + "<fun_sign> " + type.lexeme + " " 
+        + id.lexeme + "\n" + indent + "  " + "<params>\n";
+
       for (const auto& param : params)
       {
         str += param->to_string(indent + "  ");
       }
       return str;
     };
+    std::string getName() { return id.lexeme; };
 };
 
 // FunDeclNode - Class for ...
 class FunDeclNode : public Node 
 {
   private:
-    std::unique_ptr<ParamsNode> p;
+    std::unique_ptr<FunSignNode> fs;
     std::unique_ptr<BlockStmtNode> bs;
-    TOKEN type;
-    TOKEN id;
 
   public:
-    FunDeclNode(std::unique_ptr<ParamsNode> p, 
-                std::unique_ptr<BlockStmtNode> bs,
-                TOKEN type, TOKEN id
-    ) : p(std::move(p)), bs(std::move(bs)), type(type), id(id) {}
-    virtual Value *codegen() override
+    FunDeclNode(std::unique_ptr<FunSignNode> fs, std::unique_ptr<BlockStmtNode> bs
+    ) : fs(std::move(fs)), bs(std::move(bs)) {}
+    virtual Value* codegen() override
     {
       // First, check for an existing function from a previous 'extern' declaration.
-      Function *f = module->getFunction(id.lexeme);
+      Function* f = module->getFunction(fs->getName());
 
-      // if (!f)
-      //   f = Proto->codegen();
-
-      if (!f) return nullptr;
+      if (!f)
+      {
+        f = (Function*) fs->codegen();
+        if (!f) return nullptr;
+      }
 
       if (!f->empty()) return nullptr; // Function cannot be redefined.
 
-      return NULL;
+      // Create a new basic block to start insertion into.
+      BasicBlock *bb = BasicBlock::Create(context, "entry", f);
+      builder.SetInsertPoint(bb);
+
+      // Record the function arguments in the namedValues map.
+      namedValues.clear();
+      for (auto &arg : f->args())
+      {
+        namedValues[arg.getName()] = &arg;
+      }
+
+      if (Value *r_v = bs->codegen()) 
+      {
+        // Finish off the function.
+        builder.CreateRet(r_v);
+
+        // Validate the generated code, checking for consistency.
+        verifyFunction(*f);
+
+        return (Value*) f;
+      }
+
+      // Error reading body, remove function.
+      f->eraseFromParent();
+      return nullptr;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<fun_decl> " + type.lexeme + " " + id.lexeme + "\n";
-      str += p->to_string(indent + "  ");
-      str += bs->to_string(indent + "  ");
-      return str;
+      return fs->to_string(indent) + bs->to_string(indent + "  ");
     };
 };
 
@@ -501,16 +543,13 @@ class DeclNode : public Node
   public:
     DeclNode(std::unique_ptr<VarDeclNode> vd) : vd(std::move(vd)) {}
     DeclNode(std::unique_ptr<FunDeclNode> fd) : fd(std::move(fd)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<decl>\n";
-      if (vd) str += vd->to_string(indent + "  ");
-      if (fd) str += fd->to_string(indent + "  ");
-      return str;
+      return vd ? vd->to_string(indent) : fd->to_string(indent);
     };
 };
 
@@ -525,7 +564,7 @@ class DeclsNode : public Node
     DeclsNode(
       std::unique_ptr<DeclNode> d, std::unique_ptr<DeclsNode> ds = nullptr
     ) : d(std::move(d)), ds(std::move(ds)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL;
     };
@@ -538,54 +577,18 @@ class DeclsNode : public Node
     };
 };
 
-// ExternNode - Class for ...
-class ExternNode : public Node 
-{
-  private:
-    std::unique_ptr<ParamsNode> p;
-    TOKEN type;
-    TOKEN id;
-
-  public:
-    ExternNode(std::unique_ptr<ParamsNode> p, TOKEN type, TOKEN id
-    ) : p(std::move(p)), type(type), id(id) {}
-    virtual Value *codegen() override
-    {
-      // std::vector<Type*> Doubles(Args.size(), Type::getDoubleTy(context));
-      // FunctionType *ft = FunctionType::get(Type::getDoubleTy(context), Doubles, false);
-
-      // Function *f = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
-
-      // Set names for all arguments.
-      // unsigned i = 0;
-      // for (auto &arg : f->args())
-      // {
-      //   arg.setName(p->params[i++]);
-      // }
-
-      // return f;
-
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<extern> " + type.lexeme + " " + id.lexeme + "\n";
-      return p ?  str + p->to_string(indent + "  ") : str;
-    };
-};
-
 // ExternsNode - Class for ...
 class ExternsNode : public Node 
 {
   private:
-    std::unique_ptr<ExternNode> e;
+    std::unique_ptr<FunSignNode> e;
     std::unique_ptr<ExternsNode> es;
 
 public:
   ExternsNode(
-    std::unique_ptr<ExternNode> e, std::unique_ptr<ExternsNode> es = nullptr
+    std::unique_ptr<FunSignNode> e, std::unique_ptr<ExternsNode> es = nullptr
   ) : e(std::move(e)), es(std::move(es)) {}
-  virtual Value *codegen() override
+  virtual Value* codegen() override
   {
     return NULL;
   };
@@ -609,7 +612,7 @@ class ProgramNode : public Node
     ProgramNode(
       std::unique_ptr<ExternsNode> el, std::unique_ptr<DeclsNode> dl
     ) : el(std::move(el)), dl(std::move(dl)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return NULL; // TODO: Translate to LLVM IR
     };
@@ -631,7 +634,7 @@ class UnaryNode : public ExprNode
 
   public:
     UnaryNode(TOKEN op, std::unique_ptr<ExprNode> l) : op(op), l(std::move(l)) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       Value *l_v = l->codegen();
       if (!l_v) return nullptr;
@@ -660,7 +663,7 @@ class VariableNode : public ExprNode
 
   public:
     VariableNode(TOKEN id): id(id) {}
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       // Look this variable up.
       Value *v = namedValues[id.lexeme];
@@ -679,29 +682,34 @@ class CallNode : public ExprNode
 {
   private:
     TOKEN id;
-    std::unique_ptr<ArgsNode> a;
+    std::vector<std::unique_ptr<ExprNode>> args;
 
   public:
-    CallNode(TOKEN id, std::unique_ptr<ArgsNode> a) : id(id), a(std::move(a)) {}
-    virtual Value *codegen() override
+    CallNode(
+      TOKEN id, 
+      std::vector<std::unique_ptr<ExprNode>> args
+    ) : id(id), args(std::move(args)) {}
+    virtual Value* codegen() override
     {
       // Look up the name in the global module table.
       Function *f = module->getFunction(id.lexeme);
-      if (!f) return nullptr; // Unknown function referenced
 
-      // if (f->arg_size() != args.size()) return nullptr; // Incorrect number of arguments passed
+      if (!f) return nullptr;                           // Unknown function referenced
+      if (f->arg_size() != args.size()) return nullptr; // Incorrect number of arguments passed
 
       std::vector<Value *> a_v;
-      // for (unsigned i = 0, e = a->args.size(); i != e; ++i) {
-      //   a_v.push_back(a->args[i]->codegen());
-      //   if (!a_v.back()) return nullptr;
-      // }
+      for (unsigned i = 0, e = args.size(); i != e; ++i)
+      {
+        a_v.push_back(args[i]->codegen());
+        if (!a_v.back()) return nullptr;
+      }
 
       return builder.CreateCall(f, a_v, "calltmp");
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<call> " + id.lexeme + "\n" + a->to_string(indent + "  ");
+      return indent + "<call> " + id.lexeme + "\n";
+      // + a->to_string(indent + "  "); TODO: fix 
     };
 };
 
@@ -716,7 +724,7 @@ class IntNode : public ExprNode
     {
       val = std::stoi(tok.lexeme); 
     }
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return ConstantInt::get(context, APInt(sizeof(int)*8, val));
     };
@@ -737,7 +745,7 @@ class FloatNode : public ExprNode
     {
       val = std::stof(tok.lexeme); 
     }
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return ConstantFP::get(context, APFloat(val));
     };
@@ -758,7 +766,7 @@ class BoolNode : public ExprNode
     {
       val = tok.lexeme == "true"; // TODO: check
     }
-    virtual Value *codegen() override
+    virtual Value* codegen() override
     {
       return ConstantInt::get(context, APInt(sizeof(bool)*8, val));
     };

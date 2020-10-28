@@ -4,8 +4,10 @@ program ::= externs decls
 
 externs ::= extern externs
           | extern
-              
-extern ::= "extern" fun_type IDENT "(" params ")" ";"
+
+extern ::= "extern" fun_sign ";"
+
+fun_sign ::= fun_type IDENT "(" params ")"
 
 decls ::= decl decls
         | decl
@@ -15,7 +17,7 @@ decl ::= var_decl
 
 var_decl ::= var_type IDENT ";"
 
-fun_decl ::= fun_type IDENT "(" params ")" block_stmt
+fun_decl ::= fun_sign block_stmt
 
 var_type ::= "int" 
            | "float" 
