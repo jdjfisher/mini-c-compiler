@@ -37,7 +37,6 @@ static std::unique_ptr<StmtNode> parseStmt();
 static std::unique_ptr<BlockStmtNode> parseBlockStmt();
 static std::unique_ptr<WhileStmtNode> parseWhileStmt();
 static std::unique_ptr<IfStmtNode> parseIfStmt();
-static std::unique_ptr<ElseStmtNode> parseElseStmt();
 static std::unique_ptr<ReturnStmtNode> parseReturnStmt();
 static std::unique_ptr<ExprStmtNode> parseExprStmt();
 static std::unique_ptr<ExprNode> parseExpr();

@@ -297,45 +297,27 @@ class ReturnStmtNode : public StmtNode
     };
 };
 
-// ElseStmtNode - Class for ...
-class ElseStmtNode : public StmtNode 
-{
-  private:
-    std::unique_ptr<BlockStmtNode> bs;
-
-  public:
-    ElseStmtNode(std::unique_ptr<BlockStmtNode> bs = nullptr) : bs(std::move(bs)) {}
-    virtual Value* codegen() override
-    {
-      return NULL;
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<else_stmt>\n";
-      if (bs) str += bs->to_string(indent + "  ");
-      return str;
-    };
-};
-
 // IfStmtNode - Class for ...
 class IfStmtNode : public StmtNode 
 {
   private:
-    std::unique_ptr<ExprNode> e;
-    std::unique_ptr<BlockStmtNode> bs;
-    std::unique_ptr<ElseStmtNode> es;
+    std::unique_ptr<ExprNode> condE;
+    std::unique_ptr<BlockStmtNode> thenB;
+    std::unique_ptr<BlockStmtNode> elseB;
 
   public:
     IfStmtNode(
-      std::unique_ptr<ExprNode> e, std::unique_ptr<BlockStmtNode> bs, std::unique_ptr<ElseStmtNode> es
-    ) : e(std::move(e)), bs(std::move(bs)), es(std::move(es)) {}
+      std::unique_ptr<ExprNode> condE, 
+      std::unique_ptr<BlockStmtNode> thenB, 
+      std::unique_ptr<BlockStmtNode> elseB
+    ) : condE(std::move(condE)), thenB(std::move(thenB)), elseB(std::move(elseB)) {}
     virtual Value* codegen() override
     {
-      Value *e_v = e->codegen();
-      if (!e_v) return nullptr;
+      Value *c_v = condE->codegen();
+      if (!c_v) return nullptr;
 
       // Convert condition to a bool by comparing non-equal to 0.0.
-      e_v = builder.CreateFCmpONE(e_v, ConstantFP::get(context, APFloat(0.0)), "ifcond");
+      c_v = builder.CreateFCmpONE(c_v, ConstantFP::get(context, APFloat(0.0)), "ifcond");
 
       Function *f = builder.GetInsertBlock()->getParent();
 
@@ -344,7 +326,7 @@ class IfStmtNode : public StmtNode
       // BasicBlock *else_bb = BasicBlock::Create(context, "else");
       // BasicBlock *merge_bb = BasicBlock::Create(context, "ifcont");
 
-      // builder.CreateCondBr(e_v, then_bb, else_bb);
+      // builder.CreateCondBr(c_v, then_bb, else_bb);
 
       // // Emit then value.
       // builder.SetInsertPoint(then_bb);
@@ -375,9 +357,9 @@ class IfStmtNode : public StmtNode
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<if_stmt>\n";
-      str += e->to_string(indent + "  ");
-      str += bs->to_string(indent + "  ");
-      str += es->to_string(indent + "  ");
+      str += condE->to_string(indent + "  ");
+      str += thenB->to_string(indent + "  ");
+      str += elseB->to_string(indent + "  ");
       return str;
     };
 };
@@ -423,6 +405,7 @@ class ParamNode : public Node
       return str;
     };
     std::string getName() { return id.lexeme; };
+    int getType() { return type.type; };
 };
 
 // FunSignNode - Class for ...
@@ -442,16 +425,15 @@ class FunSignNode : public Node
     {}
     virtual Value* codegen() override
     {
-      // 
+      // Create return and arg types.
       Type* returnType = typeLookup(type.type);
       std::vector<Type*> argTypes;
- 
       for (const auto& param : params)
       {
-        // argTypes.push_back(param); // TODO: get type
+        argTypes.push_back(typeLookup(param->getType()));
       }
     
-      // Create a new function type
+      // Create a new function type.
       FunctionType *ft = FunctionType::get(returnType, argTypes, false);
       Function *f = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
 

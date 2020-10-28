@@ -359,29 +359,21 @@ static std::unique_ptr<IfStmtNode> parseIfStmt()
   // Consume the ) token.
   getNextToken();
 
-  auto bs = parseBlockStmt();
-  if (!bs) return nullptr;
+  auto thenB = parseBlockStmt();
+  if (!thenB) return nullptr;
 
-  auto es = parseElseStmt();
-  if (!es) return nullptr;
+  std::unique_ptr<BlockStmtNode> elseB = nullptr;
 
-  return std::make_unique<IfStmtNode>(std::move(e), std::move(bs), std::move(es));
-}
-
-static std::unique_ptr<ElseStmtNode> parseElseStmt() 
-{
   if (CurTok.type == ELSE)
   {
     // Consume the ELSE token.
     getNextToken();
 
-    auto bs = parseBlockStmt();
-    if (!bs) return nullptr;
-
-    return std::make_unique<ElseStmtNode>(std::move(bs));
+    elseB = parseBlockStmt();
+    if (!elseB) return nullptr;
   } 
 
-  return std::make_unique<ElseStmtNode>();
+  return std::make_unique<IfStmtNode>(std::move(e), std::move(thenB), std::move(elseB));
 }
 
 static std::unique_ptr<ReturnStmtNode> parseReturnStmt() 
