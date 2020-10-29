@@ -72,23 +72,19 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Node &ast)
 //===----------------------------------------------------------------------===//
 
 int main(int argc, char **argv) {
-  if (argc == 2) {
+  if (argc == 2) 
+  {
     pFile = fopen(argv[1], "r");
     if (pFile == NULL)
+    {
       perror("Error opening file");
-  } else {
+    }
+  } 
+  else 
+  {
     std::cout << "Usage: ./code InputFile\n";
     return 1;
   }
-
-  // Get the first token.
-  // TOKEN t = getNextToken();
-  // while (t.type != EOF_TOK) 
-  // {
-  //   fprintf(stderr, "Token: %s with type %d\n", t.lexeme.c_str(), t.type);
-  //   t = getNextToken();
-  // }
-  // fprintf(stderr, "Lexer Finished\n");
 
   // Make the module, which holds all the code.
   module = std::make_unique<Module>("mini-c", context);
@@ -106,7 +102,7 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  //********************* Start printing final IR **************************
+  //********************* Print final IR **************************
   // Print out all of the generated code into a file called output.ll
   std::error_code ec;
   raw_fd_ostream dest("output.ll", ec, sys::fs::F_None);
@@ -117,10 +113,10 @@ int main(int argc, char **argv) {
     return -1;
   }
   
-  // module->print(errs(), nullptr); // print IR to terminal
+  p->codegen();
+  module->print(errs(), nullptr); // print IR to terminal
   module->print(dest, nullptr);
-  //********************* End printing final IR ****************************
 
-  fclose(pFile); // close the file that contains the code that was parsed
+  fclose(pFile); 
   return 0;
 }

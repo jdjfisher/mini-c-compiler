@@ -146,16 +146,19 @@ static std::unique_ptr<DeclsNode> parseDecls()
   auto d = parseDecl();
   if (!d) return nullptr;
 
-  if (CurTok.type == VOID_TOK  || CurTok.type == INT_TOK ||
-      CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
-  {
-    auto dl = parseDecls();
-    if (!dl) return nullptr;
+  std::vector<std::unique_ptr<DeclNode>> decls;
+  decls.push_back(std::move(d));
 
-    return std::make_unique<DeclsNode>(std::move(d), std::move(dl));
+  while (CurTok.type == VOID_TOK  || CurTok.type == INT_TOK ||
+         CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
+  {
+    d = parseDecl();
+    if (!d) return nullptr;
+
+    decls.push_back(std::move(d));
   }
 
-  return std::make_unique<DeclsNode>(std::move(d));
+  return std::make_unique<DeclsNode>(std::move(decls));
 }
 
 static std::unique_ptr<DeclNode> parseDecl()
