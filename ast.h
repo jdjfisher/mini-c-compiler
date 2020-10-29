@@ -301,65 +301,66 @@ class ReturnStmtNode : public StmtNode
 class IfStmtNode : public StmtNode 
 {
   private:
-    std::unique_ptr<ExprNode> condE;
-    std::unique_ptr<BlockStmtNode> thenB;
-    std::unique_ptr<BlockStmtNode> elseB;
+    std::unique_ptr<ExprNode> cond_e;
+    std::unique_ptr<BlockStmtNode> then_b;
+    std::unique_ptr<BlockStmtNode> else_b;
 
   public:
     IfStmtNode(
-      std::unique_ptr<ExprNode> condE, 
-      std::unique_ptr<BlockStmtNode> thenB, 
-      std::unique_ptr<BlockStmtNode> elseB
-    ) : condE(std::move(condE)), thenB(std::move(thenB)), elseB(std::move(elseB)) {}
+      std::unique_ptr<ExprNode> cond_e, 
+      std::unique_ptr<BlockStmtNode> then_b, 
+      std::unique_ptr<BlockStmtNode> else_b
+    ) : cond_e(std::move(cond_e)), then_b(std::move(then_b)), else_b(std::move(else_b)) 
+    {}
     virtual Value* codegen() override
     {
-      Value *c_v = condE->codegen();
-      if (!c_v) return nullptr;
+      Value* cond_v = cond_e->codegen();
+      if (!cond_v) return nullptr;
 
       // Convert condition to a bool by comparing non-equal to 0.0.
-      c_v = builder.CreateFCmpONE(c_v, ConstantFP::get(context, APFloat(0.0)), "ifcond");
+      cond_v = builder.CreateFCmpONE(cond_v, ConstantFP::get(context, APFloat(0.0)), "ifcond");
 
-      Function *f = builder.GetInsertBlock()->getParent();
+      Function* function = builder.GetInsertBlock()->getParent();
 
-      // // Create blocks for the then and else cases.  Insert the 'then' block at the end of the function.
-      // BasicBlock *then_bb = BasicBlock::Create(context, "then", function);
-      // BasicBlock *else_bb = BasicBlock::Create(context, "else");
-      // BasicBlock *merge_bb = BasicBlock::Create(context, "ifcont");
+      // Create blocks for the then and else cases.  Insert the 'then' block at the end of the function.
+      BasicBlock* then_bb = BasicBlock::Create(context, "then", function);
+      BasicBlock* else_bb = BasicBlock::Create(context, "else");
+      BasicBlock* merge_bb = BasicBlock::Create(context, "ifcont");
 
-      // builder.CreateCondBr(c_v, then_bb, else_bb);
+      builder.CreateCondBr(cond_v, then_bb, else_bb);
 
-      // // Emit then value.
-      // builder.SetInsertPoint(then_bb);
+      // Emit then value.
+      builder.SetInsertPoint(then_bb);
 
-      // Value *then_v = bs->codegen();
-      // if (!then_v) return nullptr;
+      Value* then_v = then_b->codegen();
+      if (!then_v) return nullptr;
 
-      // builder.CreateBr(merge_bb);
-      // // Codegen of 'Then' can change the current block, update ThenBB for the PHI.
-      // then_bb = builder.GetInsertBlock();
-      // // Emit else block.
-      // f->getBasicBlockList().push_back(else_bb);
-      // builder.SetInsertPoint(else_bb);
+      builder.CreateBr(merge_bb);
+ 
+      // Emit else block.
+      function->getBasicBlockList().push_back(else_bb);
+      builder.SetInsertPoint(else_bb);
 
-      // Value *else_v = Else->codegen();
-      // if (!else_v) return nullptr;
+      if (else_b)
+      {
+        Value* else_v = else_b->codegen();
+        if (!else_v) return nullptr;
+      }
 
-      // builder.CreateBr(merge_bb);
-      // // codegen of 'Else' can change the current block, update else_bb for the PHI.
-      // else_bb = Builder.GetInsertBlock();
+      builder.CreateBr(merge_bb);
 
-      // // Emit merge block.
-      // f->getBasicBlockList().push_back(merge_bb);
-      // builder.SetInsertPoint(merge_bb);
+      // Emit merge block.
+      function->getBasicBlockList().push_back(merge_bb);
+      builder.SetInsertPoint(merge_bb);
 
-      return NULL;
+      return NULL; // TODO: ...
     };
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<if_stmt>\n";
-      str += condE->to_string(indent + "  ");
-      str += thenB->to_string(indent + "  ");
-      str += elseB->to_string(indent + "  ");
+      str += cond_e->to_string(indent + "  ");
+      str += then_b->to_string(indent + "  ");
+      str += else_b->to_string(indent + "  ");
       return str;
     };
 };
@@ -368,20 +369,45 @@ class IfStmtNode : public StmtNode
 class WhileStmtNode : public StmtNode 
 {
   private:
-    std::unique_ptr<ExprNode> e;
-    std::unique_ptr<StmtNode> s;
+    std::unique_ptr<ExprNode> cond_e;
+    std::unique_ptr<StmtNode> loop_s;
 
   public:
-    WhileStmtNode(std::unique_ptr<ExprNode> e, std::unique_ptr<StmtNode> s) : e(std::move(e)), s(std::move(s)) {}
+    WhileStmtNode(
+      std::unique_ptr<ExprNode> cond_e, 
+      std::unique_ptr<StmtNode> loop_s
+    ) : cond_e(std::move(cond_e)), loop_s(std::move(loop_s)) {}
     virtual Value* codegen() override
     {
-      return NULL;
+      // Make the new basic block for the loop header, inserting after current block.
+      Function* function = builder.GetInsertBlock()->getParent();
+      BasicBlock* cond_bb = builder.GetInsertBlock();
+      BasicBlock* loop_bb = BasicBlock::Create(context, "loop", function);
+
+      // Insert an explicit fall through from the current block to the loop_bb.
+      builder.CreateBr(loop_bb);
+
+      // Start insertion in loop_bb.
+      builder.SetInsertPoint(loop_bb);
+
+      // Within
+   
+      // Emit the body of the loop.
+
+      if (!loop_s->codegen()) return nullptr;
+
+      // Compute the end condition.
+      Value *cond_v = cond_e->codegen();
+      if (!cond_v) return nullptr;
+
+
+      return nullptr; // ...
     };
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<while_stmt>\n";
-      str += e->to_string(indent + "  ");
-      str += s->to_string(indent + "  ");
+      str += cond_e->to_string(indent + "  ");
+      str += loop_s->to_string(indent + "  ");
       return str;
     };
 };
@@ -401,8 +427,7 @@ class ParamNode : public Node
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      std::string str = indent + "<param> " + type.lexeme + " " + id.lexeme + "\n";
-      return str;
+      return indent + "<param> " + type.lexeme + " " + id.lexeme + "\n";
     };
     std::string getName() { return id.lexeme; };
     int getType() { return type.type; };
@@ -449,7 +474,10 @@ class FunSignNode : public Node
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<fun_sign> " + type.lexeme + " " 
-        + id.lexeme + "\n" + indent + "  " + "<params>\n";
+        + id.lexeme + "\n";
+        
+      indent += "  ";
+      str += indent + "<params>\n";
 
       for (const auto& param : params)
       {
@@ -464,20 +492,20 @@ class FunSignNode : public Node
 class FunDeclNode : public Node 
 {
   private:
-    std::unique_ptr<FunSignNode> fs;
-    std::unique_ptr<BlockStmtNode> bs;
+    std::unique_ptr<FunSignNode> sign;
+    std::unique_ptr<BlockStmtNode> body;
 
   public:
-    FunDeclNode(std::unique_ptr<FunSignNode> fs, std::unique_ptr<BlockStmtNode> bs
-    ) : fs(std::move(fs)), bs(std::move(bs)) {}
+    FunDeclNode(std::unique_ptr<FunSignNode> sign, std::unique_ptr<BlockStmtNode> body
+    ) : sign(std::move(sign)), body(std::move(body)) {}
     virtual Value* codegen() override
     {
       // First, check for an existing function from a previous 'extern' declaration.
-      Function* f = module->getFunction(fs->getName());
+      Function* f = module->getFunction(sign->getName());
 
       if (!f)
       {
-        f = (Function*) fs->codegen();
+        f = (Function*) sign->codegen();
         if (!f) return nullptr;
       }
 
@@ -494,10 +522,10 @@ class FunDeclNode : public Node
         namedValues[arg.getName()] = &arg;
       }
 
-      if (Value *r_v = bs->codegen()) 
+      if (Value* return_v = body->codegen()) 
       {
         // Finish off the function.
-        builder.CreateRet(r_v);
+        builder.CreateRet(return_v);
 
         // Validate the generated code, checking for consistency.
         verifyFunction(*f);
@@ -511,7 +539,7 @@ class FunDeclNode : public Node
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return fs->to_string(indent) + bs->to_string(indent + "  ");
+      return sign->to_string(indent) + body->to_string(indent + "  ");
     };
 };
 
@@ -563,24 +591,23 @@ class DeclsNode : public Node
 class ExternsNode : public Node 
 {
   private:
-    std::unique_ptr<FunSignNode> e;
-    std::unique_ptr<ExternsNode> es;
+    std::vector<std::unique_ptr<FunSignNode>> externs;
 
-public:
-  ExternsNode(
-    std::unique_ptr<FunSignNode> e, std::unique_ptr<ExternsNode> es = nullptr
-  ) : e(std::move(e)), es(std::move(es)) {}
-  virtual Value* codegen() override
-  {
-    return NULL;
-  };
-  virtual std::string to_string(std::string indent = "") const override
-  {
-    std::string str = indent + "<externs>\n";
-    str += e->to_string(indent + "  ");
-    if (es) str += es->to_string(indent + "  ");
-    return str;
-  };
+  public:
+    ExternsNode(std::vector<std::unique_ptr<FunSignNode>> externs) : externs(std::move(externs)) {}
+    virtual Value* codegen() override
+    {
+      return NULL;
+    };
+    virtual std::string to_string(std::string indent = "") const override
+    {
+      std::string str = indent + "<externs>\n";
+      for (const auto& e : externs)
+      {
+        str += e->to_string(indent + "  ");
+      }
+      return str;
+    };
 };
 
 // ProgramNode - Class for ...
@@ -674,24 +701,28 @@ class CallNode : public ExprNode
     virtual Value* codegen() override
     {
       // Look up the name in the global module table.
-      Function *f = module->getFunction(id.lexeme);
+      Function *fun = module->getFunction(id.lexeme);
 
-      if (!f) return nullptr;                           // Unknown function referenced
-      if (f->arg_size() != args.size()) return nullptr; // Incorrect number of arguments passed
+      if (!fun) return nullptr;                           // Unknown function referenced
+      if (fun->arg_size() != args.size()) return nullptr; // Incorrect number of arguments passed
 
-      std::vector<Value *> a_v;
+      std::vector<Value *> args_v;
       for (unsigned i = 0, e = args.size(); i != e; ++i)
       {
-        a_v.push_back(args[i]->codegen());
-        if (!a_v.back()) return nullptr;
+        args_v.push_back(args[i]->codegen());
+        if (!args_v.back()) return nullptr;
       }
 
-      return builder.CreateCall(f, a_v, "calltmp");
+      return builder.CreateCall(fun, args_v, "calltmp");
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<call> " + id.lexeme + "\n";
-      // + a->to_string(indent + "  "); TODO: fix 
+      std::string str =  indent + "<call> " + id.lexeme + "\n";
+      for (const auto& arg : args)
+      {
+        str += arg->to_string(indent + "  ");
+      }
+      return str; 
     };
 };
 

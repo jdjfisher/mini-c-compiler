@@ -63,15 +63,18 @@ static std::unique_ptr<ExternsNode> parseExterns()
   auto e = parseExtern();
   if (!e) return nullptr;
 
-  if (CurTok.type == EXTERN)
-  {
-    auto el = parseExterns();
-    if (!el) return nullptr;
+  std::vector<std::unique_ptr<FunSignNode>> externs;
+  externs.push_back(std::move(e));
 
-    return std::make_unique<ExternsNode>(std::move(e), std::move(el));
+  while (CurTok.type == EXTERN)
+  {
+    e = parseExtern();
+    if (!e) return nullptr;
+
+    externs.push_back(std::move(e));
   }
 
-  return std::make_unique<ExternsNode>(std::move(e));
+  return std::make_unique<ExternsNode>(std::move(externs));
 }
 
 static std::unique_ptr<FunSignNode> parseExtern() 
@@ -120,6 +123,8 @@ static std::unique_ptr<FunSignNode> parseFunSign()
     {
       auto p = parseParam();
       if (!p) return nullptr;
+
+      params.push_back(std::move(p));
 
       if (CurTok.type == COMMA)
       {
