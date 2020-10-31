@@ -230,46 +230,50 @@ static std::unique_ptr<ParamNode> parseParam()
 
 static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
 {
-  if (CurTok.type == INT_TOK || CurTok.type == FLOAT_TOK || CurTok.type == BOOL_TOK)
+  std::vector<std::unique_ptr<VarDeclNode>> decls;
+
+  while (CurTok.type == INT_TOK || 
+         CurTok.type == FLOAT_TOK || 
+         CurTok.type == BOOL_TOK)
   {
-    auto vd = parseVarDecl();
-    if (!vd) return nullptr;
+    auto decl = parseVarDecl();
+    if (!decl) return nullptr;
 
-    auto ld = parseLocalDecls();
-    if (!ld) return nullptr;
-
-    return std::make_unique<LocalDeclsNode>(std::move(vd), std::move(ld));
+    decls.push_back(std::move(decl));
   }
   
-  return std::make_unique<LocalDeclsNode>();
+  return std::make_unique<LocalDeclsNode>(std::move(decls));
 }
 
 static std::unique_ptr<StmtListNode> parseStmtList() 
 {  
-  switch (CurTok.type)
-  {
-    case LBRA:
-    case IF:
-    case WHILE:
-    case RETURN:
-    case SC:     // FIRST(<expr_stmt>)
-    case IDENT:  // FIRST(<expr>)
-    case MINUS:
-    case NOT:
-    case INT_LIT:
-    case FLOAT_LIT:
-    case BOOL_LIT:
-    {
-      auto s = parseStmt();
-      if (!s) return nullptr;
-    
-      auto sl = parseStmtList();
-      if (!sl) return nullptr;
+  std::vector<std::unique_ptr<StmtNode>> stmts;
 
-      return std::make_unique<StmtListNode>(std::move(s), std::move(sl));
+  while (true)
+  {  
+    switch (CurTok.type)
+    {
+      case LBRA:
+      case IF:
+      case WHILE:
+      case RETURN:
+      case SC:     // FIRST(<expr_stmt>)
+      case IDENT:  // FIRST(<expr>)
+      case MINUS:
+      case NOT:
+      case INT_LIT:
+      case FLOAT_LIT:
+      case BOOL_LIT:
+      {
+        auto s = parseStmt();
+        if (!s) return nullptr;
+
+        stmts.push_back(std::move(s));
+        break;
+      }
+      default:
+        return std::make_unique<StmtListNode>(std::move(stmts));
     }
-    default:
-      return std::make_unique<StmtListNode>();
   }
 }
 
