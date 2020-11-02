@@ -39,6 +39,7 @@
 #include <system_error>
 #include <utility>
 #include <vector>
+#include <exception>
 
 // Application imports
 #include "lexer.h"
@@ -50,6 +51,22 @@ extern LLVMContext context;
 extern IRBuilder<> builder;
 extern std::unique_ptr<Module> module;
 static std::map<std::string, Value *> namedValues;
+
+
+class SemanticError: public std::exception
+{
+  private:
+    // std::string m;
+    // TOKEN t;
+
+  public:
+    SemanticError() {}
+    // SemanticError(std::string m, TOKEN t) : m(m), t(t) {}
+    virtual const char* what() const throw()
+    {
+      return "Semantic Error";
+    }
+};
 
 
 static Type* getTypeLL(int type)
@@ -124,9 +141,9 @@ class BinOpNode : public ExprNode
       switch (op.type) 
       {
         case OR:
-          return builder.CreateSelect(l_v, getBoolLL(true), r_v);
+          return builder.CreateSelect(l_v, getBoolLL(true), r_v, "or");
         case AND:
-          return builder.CreateSelect(l_v, r_v, getBoolLL(false));
+          return builder.CreateSelect(l_v, r_v, getBoolLL(false), "and");
         case PLUS:
           return builder.CreateAdd(l_v, r_v, "add");
         case MINUS:
@@ -150,7 +167,7 @@ class BinOpNode : public ExprNode
         case GT:
           return builder.CreateICmpSGT(l_v, r_v, "gt");
         default:
-          return nullptr; // invalid binary operator
+          throw SemanticError(); // invalid binary operator.
       }
     };
     virtual std::string to_string(std::string indent = "") const override

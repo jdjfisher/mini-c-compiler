@@ -18,6 +18,23 @@
 #include "ast.h"
 #include "lexer.h"
 
+
+class SyntaxError: public std::exception
+{
+  private:
+    // std::string m;
+    // TOKEN t;
+
+  public:
+    SyntaxError() {}
+    // SyntaxError(std::string m, TOKEN t) : m(m), t(t) {}
+    virtual const char* what() const throw()
+    {
+      return "Syntax Error";
+    }
+};
+
+
 TOKEN getCurrentToken();
 TOKEN getNextToken();
 std::unique_ptr<ProgramNode> parse();

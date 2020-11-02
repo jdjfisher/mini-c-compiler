@@ -12,8 +12,6 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
-#include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -29,14 +27,13 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
-#include <map>
 #include <memory>
 #include <queue>
 #include <string.h>
 #include <string>
 #include <system_error>
 #include <utility>
-#include <vector>
+#include <exception>
 
 // Application imports
 #include "lexer.h"
@@ -47,38 +44,20 @@
 using namespace llvm;
 using namespace llvm::sys;
 
-FILE *pFile;
 
-//===----------------------------------------------------------------------===//
-// Code Generation
-//===----------------------------------------------------------------------===//
+FILE *pFile;
 
 LLVMContext context;
 IRBuilder<> builder(context);
 std::unique_ptr<Module> module;
 
-//===----------------------------------------------------------------------===//
-// AST Printer
-//===----------------------------------------------------------------------===//
 
-inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const Node &ast)
-{
-  os << ast.to_string();
-  return os;
-}
-
-//===----------------------------------------------------------------------===//
-// Main driver code.
-//===----------------------------------------------------------------------===//
-
+// Entry point
 int main(int argc, char **argv) {
   if (argc == 2) 
   {
     pFile = fopen(argv[1], "r");
-    if (pFile == NULL)
-    {
-      perror("Error opening file");
-    }
+    if (pFile == NULL) perror("Error opening file");
   } 
   else 
   {
@@ -89,34 +68,45 @@ int main(int argc, char **argv) {
   // Make the module, which holds all the code.
   module = std::make_unique<Module>("mini-c", context);
 
-  // Run the parser now.
-  auto p = parse();
+  try 
+  {
+    // Run the parser (Incrementally Tokenise source and build AST)
+    auto program = parse();
 
-  if (p)
-  {
-    std::cout << p->to_string() << "Parsing Finished\n";
+    // Print AST to terminal
+    std::cout << program->to_string() << std::endl;
+
+    // Run the codegen (Build IR from AST and perform semantic analysis)
+    program->codegen();
+
+    // Print IR to terminal
+    module->print(errs(), nullptr);
+
+    // Print out all of the generated code into a file called output.ll
+    std::error_code ec;
+    raw_fd_ostream dest("output.ll", ec, sys::fs::F_None);
+    if (ec) 
+    {
+      errs() << "Could not open file: " << ec.message();
+      return -1;
+    }
   }
-  else
+  catch (const SyntaxError& e)
   {
-    std::cout << "Parsing Failed\n";
+    std::cout << e.what() << std::endl;
     return -1;
   }
-  
-  //********************* Print final IR **************************
-  // Print out all of the generated code into a file called output.ll
-  std::error_code ec;
-  raw_fd_ostream dest("output.ll", ec, sys::fs::F_None);
-
-  if (ec) 
+  catch (const SemanticError& e)
   {
-    errs() << "Could not open file: " << ec.message();
+    std::cout << e.what() << std::endl;
     return -1;
   }
-  
-  p->codegen();
-  module->print(errs(), nullptr); // print IR to terminal
-  module->print(dest, nullptr);
+  catch (const std::exception& e)
+  {
+    return -1;
+  }
 
+  // Close the file
   fclose(pFile); 
   return 0;
 }
