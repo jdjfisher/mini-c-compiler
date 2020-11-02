@@ -128,27 +128,27 @@ class BinOpNode : public ExprNode
         case AND:
           return builder.CreateSelect(l_v, r_v, getBoolLL(false));
         case PLUS:
-          return builder.CreateFAdd(l_v, r_v, "add");
+          return builder.CreateAdd(l_v, r_v, "add");
         case MINUS:
-          return builder.CreateFSub(l_v, r_v, "sub");
+          return builder.CreateSub(l_v, r_v, "sub");
         case ASTERIX:
-          return builder.CreateFMul(l_v, r_v, "mul");
+          return builder.CreateMul(l_v, r_v, "mul");
         case DIV:
-          return builder.CreateFDiv(l_v, r_v, "div");
+          return builder.CreateSDiv(l_v, r_v, "div");
         case MOD:
-          return builder.CreateFRem(l_v, r_v, "rem");
+          return builder.CreateSRem(l_v, r_v, "rem");
         case EQ:
-          return builder.CreateFCmpUEQ(l_v, r_v, "eq");
+          return builder.CreateICmpEQ(l_v, r_v, "eq"); 
         case NE:
-          return builder.CreateFCmpUNE(l_v, r_v, "ne");
+          return builder.CreateICmpNE(l_v, r_v, "ne");
         case LE:
-          return builder.CreateFCmpULE(l_v, r_v, "le");
+          return builder.CreateICmpSLE(l_v, r_v, "le");
         case GE:
-          return builder.CreateFCmpUGE(l_v, r_v, "ge");
+          return builder.CreateICmpSGE(l_v, r_v, "ge");
         case LT:
-          return builder.CreateFCmpULT(l_v, r_v, "lt");
+          return builder.CreateICmpSLT(l_v, r_v, "lt");
         case GT:
-          return builder.CreateFCmpUGT(l_v, r_v, "gt");
+          return builder.CreateICmpSGT(l_v, r_v, "gt");
         default:
           return nullptr; // invalid binary operator
       }
@@ -171,7 +171,7 @@ class AssignNode : public ExprNode
     AssignNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
     virtual Value* codegen() override
     {
-      return nullptr;
+      return getBoolLL(false); // TODO: implement
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -190,7 +190,7 @@ class VarDeclNode : public Node
     VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
     void codegen()
     {
-      // ...
+      // TODO: implement
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -692,10 +692,12 @@ class VariableNode : public ExprNode
     virtual Value* codegen() override
     {
       // Look this variable up.
-      Value *v = namedValues[id.lexeme];
-      if (!v) return nullptr; // Unknown variable name.
+      // Value *v = namedValues[id.lexeme];
+      // if (!v) return nullptr; // Unknown variable name.
 
-      return v;
+      // return v;
+
+      return getIntLL(0); // TODO: implement
     };
     virtual std::string to_string(std::string indent = "") const override
     {
