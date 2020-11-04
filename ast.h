@@ -334,7 +334,7 @@ class ReturnStmtNode : public StmtNode
     ReturnStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
     virtual void codegen(SymbolTable& symbols) override
     {
-      builder.CreateRet(e->codegen(symbols));
+      builder.CreateRet(e ? e->codegen(symbols) : getIntLL(0));
     };
     virtual std::string to_string(std::string indent = "") const override
     {
