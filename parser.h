@@ -39,17 +39,18 @@ TOKEN getCurrentToken();
 TOKEN getNextToken();
 std::unique_ptr<ProgramNode> parse();
 
+
 static std::unique_ptr<ProgramNode> parseProgram();
-static std::unique_ptr<ExternsNode> parseExterns();
+static std::vector<std::unique_ptr<FunSignNode>> parseExterns();
 static std::unique_ptr<FunSignNode> parseExtern();
 static std::unique_ptr<FunSignNode> parseFunSign();
-static std::unique_ptr<DeclsNode> parseDecls();
+static std::vector<std::unique_ptr<DeclNode>> parseDecls();
 static std::unique_ptr<DeclNode> parseDecl();
 static std::unique_ptr<VarDeclNode> parseVarDecl();
 static std::unique_ptr<FunDeclNode> parseFunDecl();
 static std::unique_ptr<ParamNode> parseParam();
-static std::unique_ptr<LocalDeclsNode> parseLocalDecls();
-static std::unique_ptr<StmtListNode> parseStmtList();
+static std::vector<std::unique_ptr<VarDeclNode>> parseLocalDecls();
+static std::vector<std::unique_ptr<StmtNode>> parseStmtList();
 static std::unique_ptr<StmtNode> parseStmt();
 static std::unique_ptr<BlockStmtNode> parseBlockStmt();
 static std::unique_ptr<WhileStmtNode> parseWhileStmt();
@@ -64,5 +65,6 @@ static std::unique_ptr<ExprNode> parseOrder();
 static std::unique_ptr<ExprNode> parseTerm();
 static std::unique_ptr<ExprNode> parseFactor();
 static std::unique_ptr<ExprNode> parseLiteral();
-static std::unique_ptr<TOKEN> parseVarType();
-static std::unique_ptr<TOKEN> parseFunType();
+static TOKEN parseVarType();
+static TOKEN parseFunType();
+

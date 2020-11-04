@@ -44,7 +44,7 @@ std::unique_ptr<ProgramNode> parse()
 
 static std::unique_ptr<ProgramNode> parseProgram() 
 {
-  std::unique_ptr<ExternsNode> es;
+  std::vector<std::unique_ptr<FunSignNode>> es;
 
   if (CurTok.type == EXTERN)
   {
@@ -56,7 +56,7 @@ static std::unique_ptr<ProgramNode> parseProgram()
   return std::make_unique<ProgramNode>(std::move(es), std::move(ds));
 }
 
-static std::unique_ptr<ExternsNode> parseExterns() 
+static std::vector<std::unique_ptr<FunSignNode>> parseExterns() 
 {
   auto e = parseExtern();
 
@@ -70,7 +70,7 @@ static std::unique_ptr<ExternsNode> parseExterns()
     externs.push_back(std::move(e));
   }
 
-  return std::make_unique<ExternsNode>(std::move(externs));
+  return std::move(externs);
 }
 
 static std::unique_ptr<FunSignNode> parseExtern() 
@@ -131,10 +131,10 @@ static std::unique_ptr<FunSignNode> parseFunSign()
   // Consume the ) token.
   getNextToken();
 
-  return std::make_unique<FunSignNode>(*ft, id, std::move(params));
+  return std::make_unique<FunSignNode>(ft, id, std::move(params));
 }
 
-static std::unique_ptr<DeclsNode> parseDecls() 
+static std::vector<std::unique_ptr<DeclNode>> parseDecls() 
 {
   auto d = parseDecl();
 
@@ -149,7 +149,7 @@ static std::unique_ptr<DeclsNode> parseDecls()
     decls.push_back(std::move(d));
   }
 
-  return std::make_unique<DeclsNode>(std::move(decls));
+  return std::move(decls);
 }
 
 static std::unique_ptr<DeclNode> parseDecl()
@@ -184,7 +184,7 @@ static std::unique_ptr<VarDeclNode> parseVarDecl()
   // Consume the ; token.
   getNextToken();
 
-  return std::make_unique<VarDeclNode>(*vt, t);
+  return std::make_unique<VarDeclNode>(vt, t);
 }
 
 static std::unique_ptr<FunDeclNode> parseFunDecl() 
@@ -204,10 +204,10 @@ static std::unique_ptr<ParamNode> parseParam()
   // Consume the IDENT token.
   getNextToken();
 
-  return std::make_unique<ParamNode>(*vt, t);
+  return std::make_unique<ParamNode>(vt, t);
 }
 
-static std::unique_ptr<LocalDeclsNode> parseLocalDecls() 
+static std::vector<std::unique_ptr<VarDeclNode>> parseLocalDecls() 
 {
   std::vector<std::unique_ptr<VarDeclNode>> decls;
 
@@ -218,10 +218,10 @@ static std::unique_ptr<LocalDeclsNode> parseLocalDecls()
     decls.push_back(parseVarDecl());
   }
   
-  return std::make_unique<LocalDeclsNode>(std::move(decls));
+  return std::move(decls);
 }
 
-static std::unique_ptr<StmtListNode> parseStmtList() 
+static std::vector<std::unique_ptr<StmtNode>> parseStmtList() 
 {  
   std::vector<std::unique_ptr<StmtNode>> stmts;
 
@@ -247,7 +247,7 @@ static std::unique_ptr<StmtListNode> parseStmtList()
         break;
       }
       default:
-        return std::make_unique<StmtListNode>(std::move(stmts));
+        return std::move(stmts);
     }
   }
 }
@@ -624,7 +624,7 @@ static std::unique_ptr<ExprNode> parseLiteral()
   }
 }
 
-static std::unique_ptr<TOKEN> parseVarType() 
+static TOKEN parseVarType() 
 {
   switch (CurTok.type)
   {
@@ -636,14 +636,14 @@ static std::unique_ptr<TOKEN> parseVarType()
       // Consume the TYPE token.
       getNextToken();
 
-      return std::make_unique<TOKEN>(t);
+      return t;
     }
     default:
       throw SyntaxError();
   }
 }
 
-static std::unique_ptr<TOKEN> parseFunType() 
+static TOKEN parseFunType() 
 {
   if (CurTok.type == VOID_TOK) 
   {
@@ -651,7 +651,7 @@ static std::unique_ptr<TOKEN> parseFunType()
     // Consume the VOID token.
     getNextToken();
 
-    return std::make_unique<TOKEN>(t);
+    return t;
   }
 
   return parseVarType();

@@ -269,53 +269,37 @@ class StmtNode : public Node
     virtual void codegen(std::map<std::string, AllocaInst *> &symbols) = 0;
 };
 
-// StmtListNode - Class for ...
-class StmtListNode : public Node 
-{
-  private:
-    std::vector<std::unique_ptr<StmtNode>> stmts;
-
-  public:
-    StmtListNode(std::vector<std::unique_ptr<StmtNode>> stmts) : stmts(std::move(stmts)) {}
-    void codegen(std::map<std::string, AllocaInst *> &symbols)
-    {
-      for (const auto& stmt : stmts)
-        stmt->codegen(symbols);
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<stmt_list>\n";
-      for (const auto& stmt : stmts)
-      {
-        str += stmt->to_string(indent + "  ");
-      }
-      return str;  
-    };
-};
-
 // BlockStmtNode - Class for ...
 class BlockStmtNode : public StmtNode 
 {
   private:
-    std::unique_ptr<LocalDeclsNode> lds;
-    std::unique_ptr<StmtListNode> sl;
+    std::vector<std::unique_ptr<VarDeclNode>> decls;
+    std::vector<std::unique_ptr<StmtNode>> stmts;
 
   public:
     BlockStmtNode(
-      std::unique_ptr<LocalDeclsNode> lds,
-      std::unique_ptr<StmtListNode> sl
-    ) : lds(std::move(lds)), sl(std::move(sl))
+      std::vector<std::unique_ptr<VarDeclNode>> decls,
+      std::vector<std::unique_ptr<StmtNode>> stmts
+    ) : decls(std::move(decls)), stmts(std::move(stmts))
     {}
     virtual void codegen(SymbolTable& symbols) override
     {
-      lds->codegen();
-      sl->codegen(symbols);
+      for (const auto& d : decls)
+        d->codegen();
+
+      for (const auto& s : stmts)
+        s->codegen(symbols);
     };
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<block_stmt>\n";
-      str += lds->to_string(indent + "  ");
-      str += sl->to_string(indent + "  ");
+
+      for (const auto& d : decls)
+        str += d->to_string(indent + "  ");
+
+      for (const auto& s : stmts)
+        str += s->to_string(indent + "  ");
+      
       return str;   
     };
 };
@@ -532,9 +516,8 @@ class FunSignNode : public Node
       str += indent + "<params>\n";
 
       for (const auto& param : params)
-      {
         str += param->to_string(indent + "  ");
-      }
+
       return str;
     };
     std::string getName() { return id.lexeme; };
@@ -624,77 +607,40 @@ class DeclNode : public Node
     };
 };
 
-// DeclsNode - Class for ...
-class DeclsNode : public Node 
-{
-  private:
-    std::vector<std::unique_ptr<DeclNode>> decls;
-
-  public:
-    DeclsNode(std::vector<std::unique_ptr<DeclNode>> decls) : decls(std::move(decls)) {}
-    void codegen()
-    {
-      for (const auto& decl : decls) 
-        decl->codegen();
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<decls>\n";
-      for (const auto& decl : decls)
-      {
-        str += decl->to_string(indent + "  ");
-      }
-      return str;
-    };
-};
-
-// ExternsNode - Class for ...
-class ExternsNode : public Node 
-{
-  private:
-    std::vector<std::unique_ptr<FunSignNode>> externs;
-
-  public:
-    ExternsNode(std::vector<std::unique_ptr<FunSignNode>> externs) : externs(std::move(externs)) {}
-    void codegen()
-    {
-      for (const auto& e : externs)
-        e->codegen();
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<externs>\n";
-      for (const auto& e : externs)
-      {
-        str += e->to_string(indent + "  ");
-      }
-      return str;
-    };
-};
-
 // ProgramNode - Class for ...
 class ProgramNode : public Node 
 {
   private:
-    std::unique_ptr<ExternsNode> externs;
-    std::unique_ptr<DeclsNode> decls;
+    std::vector<std::unique_ptr<FunSignNode>> externs;
+    std::vector<std::unique_ptr<DeclNode>> decls;
 
   public:
     ProgramNode(
-      std::unique_ptr<ExternsNode> externs, 
-      std::unique_ptr<DeclsNode> decls
+      std::vector<std::unique_ptr<FunSignNode>> externs,
+      std::vector<std::unique_ptr<DeclNode>> decls
     ) : externs(std::move(externs)), decls(std::move(decls)) 
     {}
     void codegen()
     {
-      if (externs) externs->codegen();
-      decls->codegen();
+      for (const auto& e : externs)
+        e->codegen();
+
+      for (const auto& d : decls)
+        d->codegen();
     };
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<program>\n";
-      if (externs) str += externs->to_string(indent + "  ");
-      str += decls->to_string(indent + "  ");
+      str += indent + "  <externs>\n";
+
+      for (const auto& e : externs)
+        str += e->to_string(indent + "    ");
+      
+      str += indent + "  <decls>\n";
+
+      for (const auto& d : decls)
+        str += d->to_string(indent + "    ");
+      
       return str;
     };
 };
@@ -785,10 +731,10 @@ class CallNode : public ExprNode
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str =  indent + "<call> " + id.lexeme + "\n";
+
       for (const auto& arg : args)
-      {
         str += arg->to_string(indent + "  ");
-      }
+
       return str; 
     };
 };
