@@ -22,15 +22,15 @@
 class SyntaxError: public std::exception
 {
   private:
-    // std::string m;
+    std::string m;
     // TOKEN t;
 
   public:
     SyntaxError() {}
-    // SyntaxError(std::string m, TOKEN t) : m(m), t(t) {}
+    SyntaxError(std::string m) : m(m) {}
     virtual const char* what() const throw()
     {
-      return "Syntax Error";
+      return m.c_str();
     }
 };
 

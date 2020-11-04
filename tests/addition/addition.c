@@ -2,8 +2,8 @@
 extern int print_int(int X);
 
 int addition(int n, int m){
-	int result;
-	result = n + m;
+	// int result;
+	// result = n + m;
   
 
   if(n == 4) {
@@ -13,6 +13,6 @@ int addition(int n, int m){
     print_int(n*m);
   }
 
-  return result;
+  return n;
 }
 

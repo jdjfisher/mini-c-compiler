@@ -47,24 +47,27 @@
 // Namespaces
 using namespace llvm;
 
+// Aliases
+using SymbolTable = std::map<std::string, AllocaInst*>;
+
+
 extern LLVMContext context;
 extern IRBuilder<> builder;
 extern std::unique_ptr<Module> module;
-static std::map<std::string, Value *> namedValues;
+static SymbolTable globalValues;
 
 
 class SemanticError: public std::exception
 {
   private:
-    // std::string m;
+    std::string m;
     // TOKEN t;
 
   public:
-    SemanticError() {}
-    // SemanticError(std::string m, TOKEN t) : m(m), t(t) {}
+    SemanticError(std::string m) : m(m) {}
     virtual const char* what() const throw()
     {
-      return "Semantic Error";
+      return m.c_str();
     }
 };
 
@@ -84,6 +87,14 @@ static Type* getTypeLL(int type)
     default:
       return nullptr;
   }
+}
+
+static AllocaInst* createEntryBlockAlloca(Function* f,
+                                          Type* type,
+                                          const std::string& iden)
+{
+  IRBuilder<> t_b(&f->getEntryBlock(), f->getEntryBlock().begin());
+  return t_b.CreateAlloca(type, 0, iden.c_str());
 }
 
 static Constant* getFloatLL(float value)
@@ -117,7 +128,7 @@ class Node
 class ExprNode : public Node 
 {
   public:
-    virtual Value* codegen() = 0;
+    virtual Value* codegen(SymbolTable& symbols) = 0;
 };
 
 // FactorNode - Class for ...
@@ -132,13 +143,16 @@ class BinOpNode : public ExprNode
     BinOpNode(
       std::unique_ptr<ExprNode> l, std::unique_ptr<ExprNode> r, TOKEN op
     ) : l(std::move(l)), r(std::move(r)), op(op) {}
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
-      Value* l_v = l->codegen();
-      Value* r_v = r->codegen();
+      Value* l_v = l->codegen(symbols);
+      Value* r_v = r->codegen(symbols);
       if (!l_v || !r_v) return nullptr;
 
-      switch (op.type) 
+      // std::cout << "ops: " << l_v->getType() << " " << r_v->getType() << "\n";
+      // l_v->getType()->print();
+
+      switch (op.type)
       {
         case OR:
           return builder.CreateSelect(l_v, getBoolLL(true), r_v, "or");
@@ -167,7 +181,7 @@ class BinOpNode : public ExprNode
         case GT:
           return builder.CreateICmpSGT(l_v, r_v, "gt");
         default:
-          throw SemanticError(); // invalid binary operator.
+          throw SemanticError("Invalid binary operator");
       }
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -186,9 +200,18 @@ class AssignNode : public ExprNode
 
   public:
     AssignNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
-      return getBoolLL(false); // TODO: implement
+      //
+      Value* value = e->codegen(symbols);
+
+      // Look up the name.
+      Value* variable = symbols[id.lexeme];
+      if (!variable) throw SemanticError("Unknown variable name: " + id.lexeme);
+
+      //
+      builder.CreateStore(value, variable);
+      return value;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -243,7 +266,7 @@ class LocalDeclsNode : public Node
 class StmtNode : public Node
 {
   public:
-    virtual void codegen() = 0;
+    virtual void codegen(std::map<std::string, AllocaInst *> &symbols) = 0;
 };
 
 // StmtListNode - Class for ...
@@ -254,10 +277,10 @@ class StmtListNode : public Node
 
   public:
     StmtListNode(std::vector<std::unique_ptr<StmtNode>> stmts) : stmts(std::move(stmts)) {}
-    void codegen()
+    void codegen(std::map<std::string, AllocaInst *> &symbols)
     {
       for (const auto& stmt : stmts)
-        stmt->codegen();
+        stmt->codegen(symbols);
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -283,10 +306,10 @@ class BlockStmtNode : public StmtNode
       std::unique_ptr<StmtListNode> sl
     ) : lds(std::move(lds)), sl(std::move(sl))
     {}
-    virtual void codegen() override
+    virtual void codegen(SymbolTable& symbols) override
     {
       lds->codegen();
-      sl->codegen();
+      sl->codegen(symbols);
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -305,9 +328,9 @@ class ExprStmtNode : public StmtNode // TODO: remove node
 
   public:
     ExprStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
-    virtual void codegen() override
+    virtual void codegen(SymbolTable& symbols) override
     {
-      e->codegen(); // ...
+      e->codegen(symbols); // ...
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -325,9 +348,9 @@ class ReturnStmtNode : public StmtNode
 
   public:
     ReturnStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
-    virtual void codegen() override
+    virtual void codegen(SymbolTable& symbols) override
     {
-      builder.CreateRet(e->codegen());
+      builder.CreateRet(e->codegen(symbols));
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -352,12 +375,12 @@ class IfStmtNode : public StmtNode
       std::unique_ptr<BlockStmtNode> else_
     ) : cond(std::move(cond)), then(std::move(then)), else_(std::move(else_)) 
     {}
-    virtual void codegen() override
+    virtual void codegen(SymbolTable& symbols) override
     {
-      Value* cond_v = cond->codegen();
+      Value* cond_v = cond->codegen(symbols);
 
-      // Convert condition to a bool by comparing non-equal to 0.0.
-      cond_v = builder.CreateFCmpONE(cond_v, getFloatLL(0.0f), "ifcond");
+      // Convert condition to a bool by comparing non-equal to 0.
+      cond_v = builder.CreateICmpNE(cond_v, getBoolLL(false), "if-cond");
 
       Function* function = builder.GetInsertBlock()->getParent();
 
@@ -371,14 +394,14 @@ class IfStmtNode : public StmtNode
 
       // Emit then value.
       builder.SetInsertPoint(then_bb);
-      then->codegen();
+      then->codegen(symbols);
       builder.CreateBr(join_bb);
  
       // Emit else block.
       if (else_)
       {
         builder.SetInsertPoint(else_bb);
-        else_->codegen();
+        else_->codegen(symbols);
         builder.CreateBr(join_bb);
       }
 
@@ -408,7 +431,7 @@ class WhileStmtNode : public StmtNode
       std::unique_ptr<StmtNode> loop
     ) : cond(std::move(cond)), loop(std::move(loop)) 
     {}
-    virtual void codegen() override
+    virtual void codegen(SymbolTable& symbols) override
     {
       // Make the new basic block for the loop header, inserting after current block.
       Function* function = builder.GetInsertBlock()->getParent();
@@ -419,7 +442,7 @@ class WhileStmtNode : public StmtNode
       builder.SetInsertPoint(loop_bb);
 
       // Generate code for the loop condition.
-      Value* cond_v = cond->codegen();
+      Value* cond_v = cond->codegen(symbols);
 
       // Create basic blocks for the loop body and the join point.
       BasicBlock* body_bb = BasicBlock::Create(context, "body", function);
@@ -430,7 +453,7 @@ class WhileStmtNode : public StmtNode
 
       // 
       builder.SetInsertPoint(body_bb);
-      loop->codegen();
+      loop->codegen(symbols);
       builder.CreateBr(loop_bb);
 
       // 
@@ -491,7 +514,7 @@ class FunSignNode : public Node
       FunctionType *ft = FunctionType::get(returnType, argTypes, false);
       Function *f = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
 
-      // Set names for all arguments.
+      // Set names for all arguments
       unsigned i = 0;
       for (auto& arg : f->args())
       {
@@ -530,35 +553,43 @@ class FunDeclNode : public Node
       std::unique_ptr<BlockStmtNode> body
     ) : sign(std::move(sign)), body(std::move(body)) 
     {}
-    Function* codegen()
+    void codegen()
     {
       // First, check for an existing function from a previous 'extern' declaration.
-      Function* f = module->getFunction(sign->getName());
+      Function* function = module->getFunction(sign->getName());
 
-      if (!f)
+      // 
+      if (!function)
       {
-        f = sign->codegen();
-        if (!f) return nullptr;
+        function = sign->codegen();
       }
 
-      if (!f->empty()) return nullptr; // Function cannot be redefined.
+      if (!function->empty()) throw SemanticError("Function cannot be redefined");
 
       // Create a new basic block to start insertion into.
-      BasicBlock* body_bb = BasicBlock::Create(context, "body_bb", f);
+      BasicBlock* body_bb = BasicBlock::Create(context, "body_bb", function);
       builder.SetInsertPoint(body_bb);
-      body->codegen();
 
-      // Record the function arguments in the namedValues map.
-      namedValues.clear();
-      for (const auto &arg : f->args())
+      // Record the function arguments in the map.
+      SymbolTable symbols;
+      
+      for (auto& arg : function->args())
       {
-        namedValues[arg.getName()] = (Value*) &arg;
+        // Create an alloca for this variable.
+        AllocaInst* alloca = createEntryBlockAlloca(function, arg.getType(), arg.getName().str());
+
+        // Store the initial value into the alloca.
+        builder.CreateStore(&arg, alloca);
+
+        // Add arguments to variable symbol table.
+        symbols[arg.getName().str()] = alloca;
       }
 
+      // Generate the body
+      body->codegen(symbols);
+
       // Validate the generated code, checking for consistency.
-      verifyFunction(*f);
-    
-      return f;
+      verifyFunction(*function);
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -677,9 +708,9 @@ class UnaryNode : public ExprNode
 
   public:
     UnaryNode(TOKEN op, std::unique_ptr<ExprNode> expr) : op(op), expr(std::move(expr)) {}
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
-      Value* expr_v = expr->codegen();
+      Value* expr_v = expr->codegen(symbols);
       if (!expr_v) return nullptr;
 
       switch (op.type) 
@@ -706,15 +737,14 @@ class VariableNode : public ExprNode
 
   public:
     VariableNode(TOKEN id): id(id) {}
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
       // Look this variable up.
-      // Value *v = namedValues[id.lexeme];
-      // if (!v) return nullptr; // Unknown variable name.
+      Value *v = symbols[id.lexeme];
+      if (!v) throw SemanticError("Unknown variable name: " + id.lexeme);
 
-      // return v;
-
-      return getIntLL(0); // TODO: implement
+      // Load the value.
+      return builder.CreateLoad(v, id.lexeme.c_str());
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -735,7 +765,7 @@ class CallNode : public ExprNode
       std::vector<std::unique_ptr<ExprNode>> args
     ) : id(id), args(std::move(args)) 
     {}
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
       // Look up the name in the global module table.
       Function *function = module->getFunction(id.lexeme);
@@ -746,7 +776,7 @@ class CallNode : public ExprNode
       std::vector<Value *> args_v;
       for (unsigned i = 0, e = args.size(); i != e; ++i)
       {
-        args_v.push_back(args[i]->codegen());
+        args_v.push_back(args[i]->codegen(symbols));
         if (!args_v.back()) return nullptr;
       }
 
@@ -774,7 +804,7 @@ class FloatNode : public ExprNode
     {
       value = std::stof(tok.lexeme); 
     }
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
       return getFloatLL(value);
     };
@@ -795,7 +825,7 @@ class IntNode : public ExprNode
     {
       value = std::stoi(tok.lexeme); 
     }
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
       return getIntLL(value);
     };
@@ -816,7 +846,7 @@ class BoolNode : public ExprNode
     {
       value = tok.lexeme == "true"; // TODO: check
     }
-    virtual Value* codegen() override
+    virtual Value* codegen(SymbolTable& symbols) override
     {
       return getBoolLL(value);
     };
