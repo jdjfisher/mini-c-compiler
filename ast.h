@@ -15,7 +15,6 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
-#include "llvm/IR/Verifier.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/Host.h"
 #include "llvm/Support/TargetRegistry.h"
@@ -25,8 +24,6 @@
 #include "llvm/Target/TargetOptions.h"
 
 // Standard library imports
-#include <algorithm>
-#include <cassert>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -54,7 +51,6 @@ using SymbolTable = std::map<std::string, AllocaInst*>;
 extern LLVMContext context;
 extern IRBuilder<> builder;
 extern std::unique_ptr<Module> module;
-static SymbolTable globalValues;
 
 
 class SemanticError: public std::exception
@@ -94,7 +90,7 @@ static AllocaInst* createEntryBlockAlloca(Function* f,
                                           const std::string& iden)
 {
   IRBuilder<> t_b(&f->getEntryBlock(), f->getEntryBlock().begin());
-  return t_b.CreateAlloca(type, 0, iden.c_str());
+  return t_b.CreateAlloca(type, nullptr, iden.c_str());
 }
 
 static Constant* getFloatLL(float value)
@@ -207,6 +203,8 @@ class AssignNode : public ExprNode
 
       // Look up the name.
       Value* variable = symbols[id.lexeme];
+      if (!variable) variable = module->getNamedGlobal(id.lexeme); 
+
       if (!variable) throw SemanticError("Unknown variable name: " + id.lexeme);
 
       //
@@ -230,35 +228,20 @@ class VarDeclNode : public Node
     VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
     void codegen()
     {
-      // TODO: implement
+      module->getOrInsertGlobal(id.lexeme, getTypeLL(type.type));
+      // TODO: check duplicates
+    }
+    void codegen(SymbolTable& symbols)
+    {
+      Function* function = builder.GetInsertBlock()->getParent();
+
+      AllocaInst* alloca = createEntryBlockAlloca(function, getTypeLL(type.type), id.lexeme);
+
+      symbols[id.lexeme] = alloca;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<var_decl> " + type.lexeme + " " + id.lexeme + "\n";
-    };
-};
-
-// LocalDeclsNode - Class for ...
-class LocalDeclsNode : public Node 
-{
-  private:
-    std::vector<std::unique_ptr<VarDeclNode>> decls;
-
-  public:
-    LocalDeclsNode(std::vector<std::unique_ptr<VarDeclNode>> decls) : decls(std::move(decls)) {}
-    void codegen() 
-    {
-      for (const auto& decl : decls)
-        decl->codegen();
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      std::string str = indent + "<local_decls>\n";
-      for (const auto& d : decls)
-      {
-        str += d->to_string(indent + "  ");
-      }
-      return str;  
     };
 };
 
@@ -285,7 +268,7 @@ class BlockStmtNode : public StmtNode
     virtual void codegen(SymbolTable& symbols) override
     {
       for (const auto& d : decls)
-        d->codegen();
+        d->codegen(symbols);
 
       for (const auto& s : stmts)
         s->codegen(symbols);
@@ -570,9 +553,6 @@ class FunDeclNode : public Node
 
       // Generate the body
       body->codegen(symbols);
-
-      // Validate the generated code, checking for consistency.
-      verifyFunction(*function);
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -593,7 +573,7 @@ class DeclNode : public Node
     void codegen()
     {
       if (vd)
-      {
+      { 
         vd->codegen(); 
       } 
       else
@@ -687,6 +667,8 @@ class VariableNode : public ExprNode
     {
       // Look this variable up.
       Value *v = symbols[id.lexeme];
+      if (!v) v = module->getNamedGlobal(id.lexeme); // TODO: ...
+
       if (!v) throw SemanticError("Unknown variable name: " + id.lexeme);
 
       // Load the value.

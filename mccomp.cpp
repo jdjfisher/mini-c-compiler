@@ -90,6 +90,7 @@ int main(int argc, char **argv) {
       errs() << "Could not open file: " << ec.message();
       return -1;
     }
+    module->print(dest, nullptr);
   }
   catch (const SyntaxError& e)
   {
