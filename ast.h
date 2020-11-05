@@ -217,8 +217,15 @@ class AssignNode : public ExprNode
     };
 };
 
+// DeclNode - Class for ...
+class DeclNode : public Node
+{
+  public:
+    virtual void codegen() = 0;
+};
+
 // VarDeclNode - Class for ...
-class VarDeclNode : public Node 
+class VarDeclNode : public DeclNode 
 {
   private:
     TOKEN type;
@@ -226,7 +233,7 @@ class VarDeclNode : public Node
 
   public:
     VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
-    void codegen()
+    virtual void codegen() override
     {
       module->getOrInsertGlobal(id.lexeme, getTypeLL(type.type));
       // TODO: check duplicates
@@ -507,7 +514,7 @@ class FunSignNode : public Node
 };
 
 // FunDeclNode - Class for ...
-class FunDeclNode : public Node 
+class FunDeclNode : public DeclNode 
 {
   private:
     std::unique_ptr<FunSignNode> sign;
@@ -519,7 +526,7 @@ class FunDeclNode : public Node
       std::unique_ptr<BlockStmtNode> body
     ) : sign(std::move(sign)), body(std::move(body)) 
     {}
-    void codegen()
+    virtual void codegen() override
     {
       // First, check for an existing function from a previous 'extern' declaration.
       Function* function = module->getFunction(sign->getName());
@@ -560,32 +567,6 @@ class FunDeclNode : public Node
     };
 };
 
-// DeclNode - Class for ...
-class DeclNode : public Node 
-{
-  private:
-    std::unique_ptr<VarDeclNode> vd;
-    std::unique_ptr<FunDeclNode> fd;
-
-  public:
-    DeclNode(std::unique_ptr<VarDeclNode> vd) : vd(std::move(vd)) {}
-    DeclNode(std::unique_ptr<FunDeclNode> fd) : fd(std::move(fd)) {}
-    void codegen()
-    {
-      if (vd)
-      { 
-        vd->codegen(); 
-      } 
-      else
-      {
-        fd->codegen();
-      }        
-    };
-    virtual std::string to_string(std::string indent = "") const override
-    {
-      return vd ? vd->to_string(indent) : fd->to_string(indent);
-    };
-};
 
 // ProgramNode - Class for ...
 class ProgramNode : public Node 

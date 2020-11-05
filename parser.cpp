@@ -163,9 +163,9 @@ static std::unique_ptr<DeclNode> parseDecl()
   switch (t3.type)
   {
     case SC:
-      return std::make_unique<DeclNode>(parseVarDecl());
+      return parseVarDecl();
     case LPAR:
-      return std::make_unique<DeclNode>(parseFunDecl()); 
+      return parseFunDecl(); 
     default:
       throw SyntaxError();
   }
