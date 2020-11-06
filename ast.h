@@ -141,12 +141,22 @@ class BinOpNode : public ExprNode
     ) : l(std::move(l)), r(std::move(r)), op(op) {}
     virtual Value* codegen(SymbolTable& symbols) override
     {
+      // Codegen the operands
       Value* l_v = l->codegen(symbols);
       Value* r_v = r->codegen(symbols);
-      if (!l_v || !r_v) return nullptr;
 
-      // std::cout << "ops: " << l_v->getType() << " " << r_v->getType() << "\n";
-      // l_v->getType()->print();
+      Type* i_t = getTypeLL(INT_TOK);
+      Type* f_t = getTypeLL(FLOAT_TOK);
+
+      // Cast ...
+      if (l_v->getType() == i_t && r_v->getType() == f_t)
+      {
+        l_v = CastInst::Create(Instruction::SIToFP, l_v, r_v->getType(), "cast");
+      }
+      else if (r_v->getType() == i_t && l_v->getType() == f_t)
+      {
+        r_v = CastInst::Create(Instruction::SIToFP, r_v, l_v->getType(), "cast");
+      }
 
       switch (op.type)
       {
@@ -177,7 +187,7 @@ class BinOpNode : public ExprNode
         case GT:
           return builder.CreateICmpSGT(l_v, r_v, "gt");
         default:
-          throw SemanticError("Invalid binary operator");
+          throw SemanticError("Invalid binary operator: " + op.lexeme);
       }
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -324,7 +334,7 @@ class ReturnStmtNode : public StmtNode
     ReturnStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
     virtual void codegen(SymbolTable& symbols) override
     {
-      builder.CreateRet(e ? e->codegen(symbols) : getIntLL(0));
+      builder.CreateRet(e ? e->codegen(symbols) : nullptr /*void*/); // TODO: Add type checking
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -647,13 +657,13 @@ class VariableNode : public ExprNode
     virtual Value* codegen(SymbolTable& symbols) override
     {
       // Look this variable up.
-      Value *v = symbols[id.lexeme];
-      if (!v) v = module->getNamedGlobal(id.lexeme); // TODO: ...
+      Value *value = symbols[id.lexeme];
+      if (!value) value = module->getNamedGlobal(id.lexeme); // TODO: ...
 
-      if (!v) throw SemanticError("Unknown variable name: " + id.lexeme);
+      if (!value) throw SemanticError("Unknown variable name: " + id.lexeme);
 
       // Load the value.
-      return builder.CreateLoad(v, id.lexeme.c_str());
+      return builder.CreateLoad(value, id.lexeme.c_str());
     };
     virtual std::string to_string(std::string indent = "") const override
     {
