@@ -94,12 +94,12 @@ int main(int argc, char **argv) {
   }
   catch (const SyntaxError& e)
   {
-    std::cout << "Syntax Error: " << e.what() << std::endl;
+    std::cout << e.getMessage() << std::endl;
     return -1;
   }
   catch (const SemanticError& e)
   {
-    std::cout << "Semantic Error: " << e.what() << std::endl;
+    std::cout << e.getMessage() << std::endl;
     return -1;
   }
   catch (const std::exception& e)

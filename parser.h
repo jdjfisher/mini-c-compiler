@@ -4,6 +4,7 @@
 // Standard library imports
 #include <memory>
 #include <string>
+#include <sstream>
 
 // Application imports
 #include "ast.h"
@@ -13,16 +14,23 @@
 class SyntaxError: public std::exception
 {
   private:
-    std::string m;
-    // TOKEN t;
+    TOKEN tok;
+    std::string expected;
 
   public:
-    SyntaxError() {}
-    SyntaxError(std::string m) : m(m) {}
-    virtual const char* what() const throw()
+    SyntaxError(TOKEN tok, std::string expected) : tok(tok), expected(expected) {}
+    const char* what() const throw()
     {
-      return m.c_str();
+      return ""; // TODO: ...
     }
+    std::string getMessage() const
+    {
+      std::stringstream ss;
+      ss << "Syntax error <" << tok.lineNo << ":" << tok.columnNo
+         << "> expected '" << expected << "' found '" << tok.lexeme << "'";
+
+      return ss.str();
+    };
 };
 
 

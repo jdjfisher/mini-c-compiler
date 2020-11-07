@@ -75,13 +75,13 @@ static std::vector<std::unique_ptr<FunSignNode>> parseExterns()
 
 static std::unique_ptr<FunSignNode> parseExtern() 
 {
-  if (CurTok.type != EXTERN) throw SyntaxError();
+  if (CurTok.type != EXTERN) throw SyntaxError(CurTok, "extern keyword");
   // Consume the EXTERN token.
   getNextToken();
 
   auto fs = parseFunSign();
 
-  if (CurTok.type != SC) throw SyntaxError(); 
+  if (CurTok.type != SC) throw SyntaxError(CurTok, ";"); 
   // Consume the ; token.
   getNextToken();
 
@@ -92,12 +92,12 @@ static std::unique_ptr<FunSignNode> parseFunSign()
 {
   auto ft = parseFunType();
 
-  if (CurTok.type != IDENT) throw SyntaxError(); 
+  if (CurTok.type != IDENT) throw SyntaxError(CurTok, "function identifier"); 
   TOKEN id = CurTok;
   // Consume the IDENT token.
   getNextToken();
 
-  if (CurTok.type != LPAR) throw SyntaxError(); 
+  if (CurTok.type != LPAR) throw SyntaxError(CurTok, "("); 
   // Consume the ( token.
   getNextToken();
 
@@ -127,7 +127,7 @@ static std::unique_ptr<FunSignNode> parseFunSign()
     }
   }
 
-  if (CurTok.type != RPAR) throw SyntaxError(); 
+  if (CurTok.type != RPAR) throw SyntaxError(CurTok, ")"); 
   // Consume the ) token.
   getNextToken();
 
@@ -160,14 +160,14 @@ static std::unique_ptr<DeclNode> parseDecl()
   putBackToken(t2);
   putBackToken(t1);
 
-  switch (t3.type)
+  // Look ahead of the type and indentifier token to determine decl type
+  if (t3.type == SC)
   {
-    case SC:
-      return parseVarDecl();
-    case LPAR:
-      return parseFunDecl(); 
-    default:
-      throw SyntaxError();
+    return parseVarDecl();
+  }
+  else
+  { 
+    return parseFunDecl(); 
   }
 }
 
@@ -175,12 +175,12 @@ static std::unique_ptr<VarDeclNode> parseVarDecl()
 {
   auto vt = parseVarType();
 
-  if (CurTok.type != IDENT) throw SyntaxError();
+  if (CurTok.type != IDENT) throw SyntaxError(CurTok, "variable identifier");
   // Consume the IDENT token.
   TOKEN t = CurTok;
   getNextToken();
 
-  if (CurTok.type != SC) throw SyntaxError();
+  if (CurTok.type != SC) throw SyntaxError(CurTok, ";");
   // Consume the ; token.
   getNextToken();
 
@@ -199,7 +199,7 @@ static std::unique_ptr<ParamNode> parseParam()
 {
   auto vt = parseVarType(); 
 
-  if (CurTok.type != IDENT) throw SyntaxError();
+  if (CurTok.type != IDENT) throw SyntaxError(CurTok, "parameter identifier");
   TOKEN t = CurTok;
   // Consume the IDENT token.
   getNextToken();
@@ -257,21 +257,13 @@ static std::unique_ptr<StmtNode> parseStmt()
   switch (CurTok.type)
   {
     case LBRA:
-    {
       return parseBlockStmt();
-    }
     case IF:
-    {
       return parseIfStmt();
-    }
     case WHILE:
-    {
       return parseWhileStmt();
-    }
     case RETURN:
-    {
       return parseReturnStmt();
-    }
     case IDENT: // FIRST(expr)
     case MINUS:
     case NOT:
@@ -279,24 +271,22 @@ static std::unique_ptr<StmtNode> parseStmt()
     case FLOAT_LIT:
     case BOOL_LIT:
     case SC:
-    {
       return parseExprStmt();
-    }
     default:
-      throw SyntaxError();
+      throw SyntaxError(CurTok, "statement");
   }
 }
 
 static std::unique_ptr<BlockStmtNode> parseBlockStmt() 
 {
-  if (CurTok.type != LBRA) throw SyntaxError();
+  if (CurTok.type != LBRA) throw SyntaxError(CurTok, "{");
   // Consume the { token.
   getNextToken();
 
   auto ld = parseLocalDecls();
   auto sl = parseStmtList();
 
-  if (CurTok.type != RBRA) throw SyntaxError();
+  if (CurTok.type != RBRA) throw SyntaxError(CurTok, "}");
   // Consume the } token.
   getNextToken();
 
@@ -305,17 +295,17 @@ static std::unique_ptr<BlockStmtNode> parseBlockStmt()
 
 static std::unique_ptr<WhileStmtNode> parseWhileStmt() 
 {
-  if (CurTok.type != WHILE) throw SyntaxError();
+  if (CurTok.type != WHILE) throw SyntaxError(CurTok, "while keyword");
   // Consume the WHILE token.
   getNextToken();
 
-  if (CurTok.type != LPAR) throw SyntaxError();
+  if (CurTok.type != LPAR) throw SyntaxError(CurTok, "(");
   // Consume the ( token.
   getNextToken();
 
   auto e = parseExpr();
 
-  if (CurTok.type != RPAR) throw SyntaxError();
+  if (CurTok.type != RPAR) throw SyntaxError(CurTok, ")");
   // Consume the ) token.
   getNextToken();
 
@@ -326,17 +316,17 @@ static std::unique_ptr<WhileStmtNode> parseWhileStmt()
 
 static std::unique_ptr<IfStmtNode> parseIfStmt() 
 {
-  if (CurTok.type != IF) throw SyntaxError();
+  if (CurTok.type != IF) throw SyntaxError(CurTok, "if keyword");
   // Consume the IF token.
   getNextToken();
 
-  if (CurTok.type != LPAR) throw SyntaxError();
+  if (CurTok.type != LPAR) throw SyntaxError(CurTok, "(");
   // Consume the ( token.
   getNextToken();
 
   auto e = parseExpr();
 
-  if (CurTok.type != RPAR) throw SyntaxError();
+  if (CurTok.type != RPAR) throw SyntaxError(CurTok, ")");
   // Consume the ) token.
   getNextToken();
 
@@ -357,7 +347,7 @@ static std::unique_ptr<IfStmtNode> parseIfStmt()
 
 static std::unique_ptr<ReturnStmtNode> parseReturnStmt() 
 {
-  if (CurTok.type != RETURN) throw SyntaxError();
+  if (CurTok.type != RETURN) throw SyntaxError(CurTok, "return keyword");
   // Consume the RETURN token.
   getNextToken();
 
@@ -371,7 +361,7 @@ static std::unique_ptr<ReturnStmtNode> parseReturnStmt()
 
   auto e = parseExpr();
 
-  if (CurTok.type != SC) throw SyntaxError();
+  if (CurTok.type != SC) throw SyntaxError(CurTok, "'");
   // Consume the ; token.
   getNextToken();
 
@@ -390,7 +380,7 @@ static std::unique_ptr<ExprStmtNode> parseExprStmt()
 
   auto e = parseExpr();
 
-  if (CurTok.type != SC) throw SyntaxError();
+  if (CurTok.type != SC) throw SyntaxError(CurTok, ";");
   // Consume the ; token.
   getNextToken();
 
@@ -551,7 +541,7 @@ static std::unique_ptr<ExprNode> parseLiteral()
 
       auto e = parseExpr();
 
-      if (CurTok.type != RPAR) throw SyntaxError();
+      if (CurTok.type != RPAR) throw SyntaxError(CurTok, ")");
       // Consume the ) token.
       getNextToken();
 
@@ -586,8 +576,8 @@ static std::unique_ptr<ExprNode> parseLiteral()
           }
         }
 
-        if (CurTok.type != RPAR) throw SyntaxError();
-        // Consume the ( token.
+        if (CurTok.type != RPAR) throw SyntaxError(CurTok, ")");
+        // Consume the ) token.
         getNextToken();
 
         return std::make_unique<CallNode>(id, std::move(args));
@@ -620,7 +610,7 @@ static std::unique_ptr<ExprNode> parseLiteral()
       return std::make_unique<BoolNode>(t);
     }
     default:
-      throw SyntaxError();
+      throw SyntaxError(CurTok, "expression");
   }
 }
 
@@ -639,7 +629,7 @@ static TOKEN parseVarType()
       return t;
     }
     default:
-      throw SyntaxError();
+      throw SyntaxError(CurTok, "bool, int or float type");
   }
 }
 
