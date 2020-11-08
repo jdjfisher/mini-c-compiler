@@ -393,10 +393,13 @@ class ReturnStmtNode : public StmtNode
       Function* function = builder.GetInsertBlock()->getParent();
 
       // Codegen the return value.
-      Value* value = e ? e->codegen(symbols) : nullptr; /*void*/
+      Value* value = e ? e->codegen(symbols) : nullptr /* void */;
+
+      // Determine the return type.
+      Type* type = value ? value->getType() : getTypeLL(VOID_TOK);
 
       // Typecheck the return type.
-      if (value->getType() != function->getReturnType())
+      if (type != function->getReturnType())
         throw SemanticError("incorrect return type");
 
       // Emit the return instruction.
