@@ -76,7 +76,6 @@ class SemanticError: public std::exception
     };
 };
 
-
 static Type* getTypeLL(int type)
 {
   switch (type)
@@ -94,14 +93,6 @@ static Type* getTypeLL(int type)
   }
 }
 
-static AllocaInst* createEntryBlockAlloca(Function* f,
-                                          Type* type,
-                                          const std::string& iden)
-{
-  IRBuilder<> t_b(&f->getEntryBlock(), f->getEntryBlock().begin());
-  return t_b.CreateAlloca(type, nullptr, iden.c_str());
-}
-
 static Constant* getFloatLL(float value)
 {
   return ConstantFP::get(getTypeLL(FLOAT_TOK), value);
@@ -117,11 +108,25 @@ static Constant* getBoolLL(bool value)
   return ConstantInt::get(getTypeLL(BOOL_TOK), int(value), false);
 }
 
+static Constant* getTypeDefaultLL(int type)
+{
+  switch (type)
+  {
+    case FLOAT_TOK:
+      return getFloatLL(0.0f);
+    case INT_TOK:
+      return getIntLL(0);
+    case BOOL_TOK:
+      return getBoolLL(false);
+    default:
+      return nullptr;
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // AST nodes
 //===----------------------------------------------------------------------===//
 
-/// Node - Base class for all AST nodes.
 class Node 
 {
   public:
@@ -158,14 +163,18 @@ class BinOpNode : public ExprNode
       Type* i_t = getTypeLL(INT_TOK);
       Type* f_t = getTypeLL(FLOAT_TOK);
 
+      BasicBlock* block = builder.GetInsertBlock();
+
+      char f = (l_v->getType() == f_t) + (r_v->getType() == f_t);
+
       // Cast ...
-      if (l_v->getType() == i_t && r_v->getType() == f_t)
+      if (f && l_v->getType() == i_t)
       {
-        l_v = CastInst::Create(Instruction::SIToFP, l_v, r_v->getType(), "cast");
+        l_v = CastInst::Create(Instruction::SIToFP, l_v, r_v->getType(), "cast", block);
       }
-      else if (r_v->getType() == i_t && l_v->getType() == f_t)
+      else if (f && r_v->getType() == i_t)
       {
-        r_v = CastInst::Create(Instruction::SIToFP, r_v, l_v->getType(), "cast");
+        r_v = CastInst::Create(Instruction::SIToFP, r_v, l_v->getType(), "cast", block);
       }
 
       switch (op.type)
@@ -174,16 +183,18 @@ class BinOpNode : public ExprNode
           return builder.CreateSelect(l_v, getBoolLL(true), r_v, "or");
         case AND:
           return builder.CreateSelect(l_v, r_v, getBoolLL(false), "and");
+
         case PLUS:
-          return builder.CreateAdd(l_v, r_v, "add");
+          return builder.CreateBinOp(f ? Instruction::FAdd : Instruction::Add, l_v, r_v, "add");
         case MINUS:
-          return builder.CreateSub(l_v, r_v, "sub");
+          return builder.CreateBinOp(f ? Instruction::FSub : Instruction::Sub, l_v, r_v, "sub");
         case ASTERIX:
-          return builder.CreateMul(l_v, r_v, "mul");
+          return builder.CreateBinOp(f ? Instruction::FMul : Instruction::Mul, l_v, r_v, "mul");
         case DIV:
-          return builder.CreateSDiv(l_v, r_v, "div");
+          return builder.CreateBinOp(f ? Instruction::FDiv : Instruction::SDiv, l_v, r_v, "div");
         case MOD:
-          return builder.CreateSRem(l_v, r_v, "rem");
+          return builder.CreateBinOp(f ? Instruction::FRem : Instruction::SRem, l_v, r_v, "mod");
+
         case EQ:
           return builder.CreateICmpEQ(l_v, r_v, "eq"); 
         case NE:
@@ -196,6 +207,7 @@ class BinOpNode : public ExprNode
           return builder.CreateICmpSLT(l_v, r_v, "lt");
         case GT:
           return builder.CreateICmpSGT(l_v, r_v, "gt");
+
         default:
           throw SemanticError(op, "invalid binary operator: " + op.lexeme);
       }
@@ -263,17 +275,46 @@ class VarDeclNode : public DeclNode
     VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
     virtual void codegen() override
     {
-      // TODO: check duplicates
-      module->getOrInsertGlobal(id.lexeme, getTypeLL(type.type));
+      // Check that a variable with the name has not already been declared.
+      if (module->getNamedGlobal(id.lexeme))
+        throw SemanticError(id, "redeclaration of '" + id.lexeme + "'");
+
+      // Get the initial value for the declaration type.
+      Constant* init = getTypeDefaultLL(type.type);
+      assert(init); 
+
+      // Create the global variable.
+      GlobalVariable* global = new GlobalVariable(
+        *module,
+        getTypeLL(type.type),
+        false, 
+        GlobalValue::ExternalLinkage,
+        init,
+        id.lexeme
+      );
+      assert(global);
     }
     void codegen(SymbolTable& symbols)
     {
+      // Check that a variable with the name has not already been declared.
+      if (symbols[id.lexeme])
+        throw SemanticError(id, "redeclaration of '" + id.lexeme + "'");
+
+      // Create an alloca for this variable.
       Function* function = builder.GetInsertBlock()->getParent();
+      IRBuilder<> t_builder (&function->getEntryBlock(), function->getEntryBlock().begin());
+      AllocaInst* alloc = t_builder.CreateAlloca(getTypeLL(type.type), nullptr, id.lexeme);
+      assert(alloc);
 
-      AllocaInst* alloca = createEntryBlockAlloca(function, getTypeLL(type.type), id.lexeme);
-      assert(alloca);
+      // .
+      Constant* init = getTypeDefaultLL(type.type);
+      assert(init); 
 
-      symbols[id.lexeme] = alloca;
+      // Emit initial assignment of default value.
+      builder.CreateStore(init, alloc);
+
+      // Add the alloca to the symbol table.
+      symbols[id.lexeme] = alloc;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -530,17 +571,17 @@ class FunSignNode : public Node
       }
     
       // Create a new function type.
-      FunctionType *ft = FunctionType::get(returnType, argTypes, false);
-      Function *f = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
+      FunctionType* ft = FunctionType::get(returnType, argTypes, false);
+      Function* function = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
 
       // Set names for all arguments
       unsigned i = 0;
-      for (auto& arg : f->args())
+      for (auto& arg : function->args())
       {
         arg.setName(params[i++]->getName()); 
       }
 
-      return f;
+      return function;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -592,13 +633,15 @@ class FunDeclNode : public DeclNode
       for (auto& arg : function->args())
       {
         // Create an alloca for this variable.
-        AllocaInst* alloca = createEntryBlockAlloca(function, arg.getType(), arg.getName().str());
+        IRBuilder<> t_b (&function->getEntryBlock(), function->getEntryBlock().begin());
+        AllocaInst* alloc = t_b.CreateAlloca(arg.getType(), nullptr, arg.getName());
+        assert(alloc);
 
         // Store the initial value into the alloca.
-        builder.CreateStore(&arg, alloca);
+        builder.CreateStore(&arg, alloc);
 
         // Add arguments to variable symbol table.
-        symbols[arg.getName().str()] = alloca;
+        symbols[arg.getName().str()] = alloc;
       }
 
       // Codegen the body of the function.
