@@ -196,17 +196,17 @@ class BinOpNode : public ExprNode
           return builder.CreateBinOp(f ? Instruction::FRem : Instruction::SRem, l_v, r_v, "mod");
 
         case EQ:
-          return builder.CreateICmpEQ(l_v, r_v, "eq"); 
+          return f ? builder.CreateFCmpOEQ(l_v, r_v, "eq") : builder.CreateICmpEQ(l_v, r_v, "eq"); 
         case NE:
-          return builder.CreateICmpNE(l_v, r_v, "ne");
+          return f ? builder.CreateFCmpONE(l_v, r_v, "ne") : builder.CreateICmpNE(l_v, r_v, "ne");
         case LE:
-          return builder.CreateICmpSLE(l_v, r_v, "le");
+          return f ? builder.CreateFCmpOLE(l_v, r_v, "le") : builder.CreateICmpSLE(l_v, r_v, "le");
         case GE:
-          return builder.CreateICmpSGE(l_v, r_v, "ge");
+          return f ? builder.CreateFCmpOGE(l_v, r_v, "ge") : builder.CreateICmpSGE(l_v, r_v, "ge");
         case LT:
-          return builder.CreateICmpSLT(l_v, r_v, "lt");
+          return f ? builder.CreateFCmpOLT(l_v, r_v, "lt") : builder.CreateICmpSLT(l_v, r_v, "lt");
         case GT:
-          return builder.CreateICmpSGT(l_v, r_v, "gt");
+          return f ? builder.CreateFCmpOGT(l_v, r_v, "gt") : builder.CreateICmpSGT(l_v, r_v, "gt");
 
         default:
           throw SemanticError(op, "invalid binary operator: " + op.lexeme);
@@ -705,15 +705,18 @@ class UnaryNode : public ExprNode
     virtual Value* codegen(SymbolTable& symbols) override
     {
       // Codegen the expression value.
-      Value* expr_v = expr->codegen(symbols);
-      assert(expr_v);
+      Value* value = expr->codegen(symbols);
+      assert(value);
+
+      // ...
+      bool f = value->getType() == getTypeLL(FLOAT_TOK);
 
       switch (op.type) 
       {
         case MINUS:
-          return builder.CreateNeg(expr_v, "neg");;
+          return f ? builder.CreateFNeg(value, "neg") : builder.CreateNeg(value, "neg");
         case NOT:
-          return builder.CreateICmpEQ(expr_v, getBoolLL(false), "not");
+          return builder.CreateICmpEQ(value, getBoolLL(false), "not");
         default:
           throw SemanticError(op, "invalid unary operator '" + op.lexeme + "'");
       }
