@@ -9,5 +9,8 @@ all: mccomp
 mccomp: lexer.cpp parser.cpp mccomp.cpp
 	$(CXX) lexer.cpp parser.cpp mccomp.cpp $(CFLAGS) $(FLAGS_FOR_DCS_SYSTEMS) -o mccomp
 
+test:
+	./tests/tests.sh
+
 clean:
 	rm -f mccomp output.ll

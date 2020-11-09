@@ -1,4 +1,7 @@
 
+// Standard library imports
+#include <memory>
+
 // Application imports
 #include "parser.h"
 #include "ast.h"
@@ -411,109 +414,114 @@ static std::unique_ptr<ExprNode> parseExpr()
 
 static std::unique_ptr<ExprNode> parseDisj()
 {
-  auto c = parseConj();
+  auto l = parseConj();
 
-  if (CurTok.type == OR) 
+  while (CurTok.type == OR) 
   {
     // Consume the || token.
     TOKEN op = CurTok;
     getNextToken();
 
-    auto d = parseDisj();
+    // Parse the second operand.
+    auto r = parseDisj();
 
-    return std::make_unique<BinOpNode>(std::move(c), std::move(d), op);
+    return std::move(std::make_unique<BinOpNode>(std::move(l), std::move(r), op));
   }
 
-  return std::move(c);
+  return std::move(l);
 }
 
 static std::unique_ptr<ExprNode> parseConj()
 {
-  auto e = parseEqual();
+  auto l = parseEqual();
 
-  if (CurTok.type == AND) 
+  while (CurTok.type == AND) 
   {
     // Consume the && token.
     TOKEN op = CurTok;
     getNextToken();
 
-    auto c = parseConj();
+    // Parse the second operand.
+    auto r = parseConj();
 
-    return std::make_unique<BinOpNode>(std::move(e), std::move(c), op);
+    return std::move(std::make_unique<BinOpNode>(std::move(l), std::move(r), op));
   }
 
-  return std::move(e);
+  return std::move(l);
 }
 
 static std::unique_ptr<ExprNode> parseEqual()
 {
-  auto o = parseOrder();
+  auto l = parseOrder();
 
-  if (CurTok.type == EQ || CurTok.type == NE) 
+  while (CurTok.type == EQ || CurTok.type == NE) 
   {
     // Consume the token.
     TOKEN op = CurTok;
     getNextToken();
 
-    auto e = parseEqual();
+    // Parse the second operand.
+    auto r = parseEqual();
 
-    return std::make_unique<BinOpNode>(std::move(o), std::move(e), op);
+    return std::move(std::make_unique<BinOpNode>(std::move(l), std::move(r), op));
   }
 
-  return std::move(o);
+  return std::move(l);
 }
 
 static std::unique_ptr<ExprNode> parseOrder()
 {
-  auto t = parseTerm();
+  auto l = parseTerm();
 
-  if (CurTok.type == LE || CurTok.type == LT || 
-      CurTok.type == GE || CurTok.type == GT
-  ) 
+  while (CurTok.type == LE || CurTok.type == LT || 
+         CurTok.type == GE || CurTok.type == GT) 
   {
-    // Consume the token.
+    // Consume the operator token.
     TOKEN op = CurTok;
     getNextToken();
 
-    auto o = parseOrder();
+    // Parse the second operand.
+    auto r = parseOrder();
 
-    return std::make_unique<BinOpNode>(std::move(t), std::move(o), op);
+    return std::move(std::make_unique<BinOpNode>(std::move(l), std::move(r), op));
   }
 
-  return std::move(t);
+  return std::move(l);
 }
 
 static std::unique_ptr<ExprNode> parseTerm()
 {
-  auto f = parseFactor();
+  auto l = parseFactor();
 
-  if (CurTok.type == PLUS || CurTok.type == MINUS) 
+  while (CurTok.type == PLUS || CurTok.type == MINUS) 
   {
-    // Consume the token.
+    // Consume the operator token.
     TOKEN op = CurTok;
     getNextToken();
 
-    auto t = parseTerm();
+    // Parse the second operand.
+    auto r = parseTerm();
 
-    return std::make_unique<BinOpNode>(std::move(f), std::move(t), op);
+    l = std::move(std::make_unique<BinOpNode>(std::move(l), std::move(r), op));
   }
 
-  return std::move(f);
+  return std::move(l);
 }
 
 static std::unique_ptr<ExprNode> parseFactor()
 {
   auto l = parseLiteral();
 
-  if (CurTok.type == ASTERIX || CurTok.type == DIV || CurTok.type == MOD) 
+  while (CurTok.type == ASTERIX || CurTok.type == DIV || CurTok.type == MOD) 
   {
-    // Consume the token.
+    // Consume the operator token.
     TOKEN op = CurTok;
     getNextToken();
 
-    auto f = parseFactor();
+    // Parse the second operand.
+    auto r = parseLiteral();
 
-    return std::make_unique<BinOpNode>(std::move(l), std::move(f), op);
+    l = std::move(std::make_unique<BinOpNode>(std::move(l), std::move(r), op));
   }
 
   return std::move(l);
