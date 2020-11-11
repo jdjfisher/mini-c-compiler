@@ -62,3 +62,9 @@ Constant* getTypeDefaultLL(int type)
       return nullptr;
   }
 }
+
+Value* boolCastLL(Value* value)
+{
+  bool f = value->getType() == getTypeLL(FLOAT_TOK);
+  return f ? builder.CreateFCmpONE(value, getFloatLL(0.0), "cond") : builder.CreateICmpNE(value, getBoolLL(false), "cond");
+}

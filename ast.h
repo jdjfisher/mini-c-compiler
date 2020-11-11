@@ -238,7 +238,7 @@ class VarDeclNode : public DeclNode
       AllocaInst* alloc = t_builder.CreateAlloca(getTypeLL(type.type), nullptr, id.lexeme);
       assert(alloc);
 
-      // .
+      // Get the initial value for the declaration type.
       Constant* init = getTypeDefaultLL(type.type);
       assert(init); 
 
@@ -367,12 +367,8 @@ class IfStmtNode : public StmtNode
       Value* cond_v = cond->codegen(symbols);
       assert(cond_v);
 
-      // Typecheck the condition value.
-      if (cond_v->getType() == getTypeLL(FLOAT_TOK))
-        throw SemanticError("...");
-
-      // Convert condition to a bool by comparing non-equal to 0.
-      cond_v = builder.CreateICmpNE(cond_v, getBoolLL(false), "if-cond");
+      // Cast the value to a boolean.
+      cond_v = boolCastLL(cond_v);
 
       // Create blocks.
       BasicBlock* then_bb = BasicBlock::Create(context, "then", function);
@@ -434,11 +430,8 @@ class WhileStmtNode : public StmtNode
       Value* cond_v = cond->codegen(symbols);
       assert(cond_v);
 
-      if (cond_v->getType() == getTypeLL(FLOAT_TOK))
-        throw SemanticError("...");
-
-      // Convert condition to a bool by comparing non-equal to 0.
-      cond_v = builder.CreateICmpNE(cond_v, getBoolLL(false), "while-cond");
+      // Cast the value to a boolean.
+      cond_v = boolCastLL(cond_v);
 
       // Create basic blocks for the loop body and the join point.
       BasicBlock* body_bb = BasicBlock::Create(context, "body", function);

@@ -13,5 +13,19 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install
+      run: 
+        apt-get update && apt-get install -y curl xz-utils libstdc++-5-dev libxml2
+        curl -L https://github.com/llvm/llvm-project/releases/download/llvmorg-10.0.1/clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz --output llvm.tar.xz && \
+        tar -xJf llvm.tar.xz && \
+        mv clang+llvm-10.0.1-x86_64-linux-gnu-ubuntu-16.04 llvm && \
+        ln -s /llvm/bin/ld.lld /llvm/bin/ld && \
+        ln -s /usr/lib/x86_64-linux-gnu/libxml2.so.2 /lib/x86_64-linux-gnu/libxml2.so && \
+        ln -s /lib/x86_64-linux-gnu/libtinfo.so.5 /lib/x86_64-linux-gnu/libtinfo.so && \
+        ln -s /lib/x86_64-linux-gnu/libz.so.1 /lib/x86_64-linux-gnu/libz.so && \
+        echo 'export PATH=/llvm/bin:$PATH' >> ~/.bashrc 
     - name: Test
-      run: make test
+      run: 
+        # make test
+
+
