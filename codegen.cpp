@@ -63,8 +63,26 @@ Constant* getTypeDefaultLL(int type)
   }
 }
 
+bool isBoolLL(Value* value)
+{
+  // Determine whether the value is a boolean
+  return value->getType() == getTypeLL(BOOL_TOK);
+}
+
+bool isFloatLL(Value* value)
+{
+  // Determine whether the value is floating point
+  return value->getType() == getTypeLL(FLOAT_TOK);
+}
+
 Value* boolCastLL(Value* value)
 {
-  bool f = value->getType() == getTypeLL(FLOAT_TOK);
-  return f ? builder.CreateFCmpONE(value, getFloatLL(0.0), "cond") : builder.CreateICmpNE(value, getBoolLL(false), "cond");
+  // Emit cast operation for the appropriate type
+  return isFloatLL(value) ? builder.CreateFCmpONE(value, getFloatLL(0.0), "cast") 
+                          : builder.CreateICmpNE(value, getBoolLL(false), "cast");
+}
+
+Value* floatCastLL(Value* value)
+{
+  return builder.CreateCast(Instruction::SIToFP, value, getTypeLL(FLOAT_TOK), "cast");
 }

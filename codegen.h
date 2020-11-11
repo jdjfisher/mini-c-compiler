@@ -48,4 +48,7 @@ Constant* getFloatLL(float value);
 Constant* getIntLL(int value);
 Constant* getBoolLL(bool value);
 Constant* getTypeDefaultLL(int type);
+bool isBoolLL(Value* value);
+bool isFloatLL(Value* value);
 Value* boolCastLL(Value* value);
+Value* floatCastLL(Value* value);

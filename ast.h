@@ -91,31 +91,26 @@ class BinOpNode : public ExprNode
       Value* r_v = right->codegen(symbols);
       assert(l_v && r_v);
 
-      Type* b_t = getTypeLL(BOOL_TOK);
-      Type* i_t = getTypeLL(INT_TOK);
-      Type* f_t = getTypeLL(FLOAT_TOK);
+      // If there is a float operand cast the other operand if necessary  
+      char f = isFloatLL(l_v) + isFloatLL(r_v);
 
-      BasicBlock* block = builder.GetInsertBlock();
-
-      char f = (l_v->getType() == f_t) + (r_v->getType() == f_t);
-
-      // Cast ...
-      if (f && l_v->getType() == i_t)
+      if (f && ! isFloatLL(l_v))
       {
-        l_v = CastInst::Create(Instruction::SIToFP, l_v, r_v->getType(), "cast", block);
+        l_v = floatCastLL(l_v);
       }
-      else if (f && r_v->getType() == i_t)
+      else if (f && ! isFloatLL(r_v))
       {
-        r_v = CastInst::Create(Instruction::SIToFP, r_v, l_v->getType(), "cast", block);
+        r_v = floatCastLL(r_v);
       }
-
+      
+      // Codegen the operation for the given operator
       switch (op.type)
       {
         // Logical operators
         case OR:
-          return builder.CreateSelect(l_v, getBoolLL(true), r_v, "or");
+          return builder.CreateSelect(boolCastLL(l_v), getBoolLL(true), boolCastLL(r_v), "or");
         case AND:
-          return builder.CreateSelect(l_v, r_v, getBoolLL(false), "and");
+          return builder.CreateSelect(boolCastLL(l_v), boolCastLL(r_v), getBoolLL(false), "and");
 
         // Arithmetic operators
         case PLUS:
@@ -633,15 +628,21 @@ class UnaryNode : public ExprNode
       Value* value = expr->codegen(symbols);
       assert(value);
 
-      // ...
-      bool f = value->getType() == getTypeLL(FLOAT_TOK);
-
+      // Codegen the operation for the given operator
       switch (op.type) 
       {
         case MINUS:
-          return f ? builder.CreateFNeg(value, "neg") : builder.CreateNeg(value, "neg");
+        {
+          if (isBoolLL(value))
+            throw SemanticError(op, "cannot negate values of type 'bool'");
+
+          // Emit negation operation for the appropriate type
+          return isFloatLL(value) ? builder.CreateFNeg(value, "neg") : builder.CreateNeg(value, "neg");
+        }
         case NOT:
-          return builder.CreateICmpEQ(value, getBoolLL(false), "not");
+          // Cast value to bool and then compare it to false
+          return builder.CreateICmpEQ(boolCastLL(value), getBoolLL(false), "not");
+        
         default:
           throw SemanticError(op, "invalid unary operator '" + op.lexeme + "'");
       }
