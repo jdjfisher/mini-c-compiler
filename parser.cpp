@@ -553,7 +553,7 @@ static std::unique_ptr<ExprNode> parseLiteral()
       // Consume the ) token.
       getNextToken();
 
-      return std::move(e); // TODO: sort
+      return std::move(e);
     }
     case IDENT:
     {

@@ -19,10 +19,6 @@ class SyntaxError: public std::exception
 
   public:
     SyntaxError(TOKEN tok, std::string expected) : tok(tok), expected(expected) {}
-    const char* what() const throw()
-    {
-      return ""; // TODO: ...
-    }
     std::string getMessage() const
     {
       std::stringstream ss;

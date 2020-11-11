@@ -41,6 +41,7 @@
 
 // Application imports
 #include "lexer.h"
+#include "codegen.h"
 
 // Namespaces
 using namespace llvm;
@@ -53,75 +54,6 @@ extern LLVMContext context;
 extern IRBuilder<> builder;
 extern std::unique_ptr<Module> module;
 
-
-class SemanticError: public std::exception
-{
-  private:
-    std::string message;
-    TOKEN tok;
-
-  public:
-    SemanticError(std::string message) : message(message) {}
-    SemanticError(TOKEN tok, std::string message) : tok(tok), message(message) {}
-    virtual const char* what() const throw()
-    {
-      return ""; // TODO: ...
-    }
-    std::string getMessage() const
-    {
-      std::stringstream ss;
-      ss << "Semantic error <" << tok.lineNo << ":" << tok.columnNo << "> " << message;
-
-      return ss.str();
-    };
-};
-
-static Type* getTypeLL(int type)
-{
-  switch (type)
-  {
-    case VOID_TOK:
-      return Type::getVoidTy(context);
-    case FLOAT_TOK:
-      return Type::getFloatTy(context);
-    case INT_TOK:
-      return Type::getIntNTy(context, 32); 
-    case BOOL_TOK:
-      return Type::getIntNTy(context, 1); 
-    default:
-      return nullptr;
-  }
-}
-
-static Constant* getFloatLL(float value)
-{
-  return ConstantFP::get(getTypeLL(FLOAT_TOK), value);
-}
-
-static Constant* getIntLL(int value)
-{
-  return ConstantInt::get(getTypeLL(INT_TOK), value, true);
-}
-
-static Constant* getBoolLL(bool value)
-{
-  return ConstantInt::get(getTypeLL(BOOL_TOK), int(value), false);
-}
-
-static Constant* getTypeDefaultLL(int type)
-{
-  switch (type)
-  {
-    case FLOAT_TOK:
-      return getFloatLL(0.0f);
-    case INT_TOK:
-      return getIntLL(0);
-    case BOOL_TOK:
-      return getBoolLL(false);
-    default:
-      return nullptr;
-  }
-}
 
 //===----------------------------------------------------------------------===//
 // AST nodes
@@ -179,11 +111,13 @@ class BinOpNode : public ExprNode
 
       switch (op.type)
       {
+        // Logical operators
         case OR:
           return builder.CreateSelect(l_v, getBoolLL(true), r_v, "or");
         case AND:
           return builder.CreateSelect(l_v, r_v, getBoolLL(false), "and");
 
+        // Arithmetic operators
         case PLUS:
           return builder.CreateBinOp(f ? Instruction::FAdd : Instruction::Add, l_v, r_v, "add");
         case MINUS:
@@ -195,6 +129,7 @@ class BinOpNode : public ExprNode
         case MOD:
           return builder.CreateBinOp(f ? Instruction::FRem : Instruction::SRem, l_v, r_v, "mod");
 
+        // Comparison operators
         case EQ:
           return f ? builder.CreateFCmpOEQ(l_v, r_v, "eq") : builder.CreateICmpEQ(l_v, r_v, "eq"); 
         case NE:
@@ -209,7 +144,7 @@ class BinOpNode : public ExprNode
           return f ? builder.CreateFCmpOGT(l_v, r_v, "gt") : builder.CreateICmpSGT(l_v, r_v, "gt");
 
         default:
-          throw SemanticError(op, "invalid binary operator: " + op.lexeme);
+          throw SemanticError(op, "invalid binary operator '" + op.lexeme + "'");
       }
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -241,9 +176,6 @@ class AssignNode : public ExprNode
       if (!variable) 
         throw SemanticError(id, "undefined variable '" + id.lexeme + "'");
 
-      // value->getType()->print(llvm::outs());
-      // variable->getType()->getContainedType()->print(llvm::outs());
-      // std::cout << "\n";
       // if (value->getType() != variable->getType())
       //   throw SemanticError(id, "incorrect type assigned to '" + id.lexeme + "'");
 
@@ -852,7 +784,7 @@ class BoolNode : public ExprNode
   public:
     BoolNode(TOKEN tok)
     {
-      value = tok.lexeme == "true"; // TODO: check
+      value = tok.lexeme == "true";
     }
     virtual Value* codegen(SymbolTable& symbols) override
     {

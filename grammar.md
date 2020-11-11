@@ -24,7 +24,7 @@ var_type ::= "int"
            | "bool"
 
 fun_type ::= "void"
-            | var_type
+           | var_type
 
 params ::= param_list
          | "void" 
