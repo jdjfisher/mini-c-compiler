@@ -70,6 +70,7 @@ class ExprNode : public Node
 {
   public:
     virtual Value* codegen(SymbolTable& symbols) = 0;
+    virtual TOKEN getTok() = 0;
 };
 
 class BinOpNode : public ExprNode 
@@ -91,28 +92,29 @@ class BinOpNode : public ExprNode
       Value* r_v = right->codegen(symbols);
       assert(l_v && r_v);
 
-      // If there is a float operand cast the other operand if necessary  
+      // Determine the number float operands
       char f = isFloatLL(l_v) + isFloatLL(r_v);
 
-      if (f && ! isFloatLL(l_v))
+      // Cast one of the operands to a float to match.
+      if (f == 1 && ! isFloatLL(l_v))
       {
         l_v = floatCastLL(l_v);
       }
-      else if (f && ! isFloatLL(r_v))
+      else if (f == 1 && ! isFloatLL(r_v))
       {
         r_v = floatCastLL(r_v);
       }
       
-      // Codegen the operation for the given operator
+      // Codegen the operation for the given operator.
       switch (op.type)
       {
-        // Logical operators
+        // Logical operators.
         case OR:
           return builder.CreateSelect(boolCastLL(l_v), getBoolLL(true), boolCastLL(r_v), "or");
         case AND:
           return builder.CreateSelect(boolCastLL(l_v), boolCastLL(r_v), getBoolLL(false), "and");
 
-        // Arithmetic operators
+        // Arithmetic operators.
         case PLUS:
           return builder.CreateBinOp(f ? Instruction::FAdd : Instruction::Add, l_v, r_v, "add");
         case MINUS:
@@ -124,7 +126,7 @@ class BinOpNode : public ExprNode
         case MOD:
           return builder.CreateBinOp(f ? Instruction::FRem : Instruction::SRem, l_v, r_v, "mod");
 
-        // Comparison operators
+        // Comparison operators.
         case EQ:
           return f ? builder.CreateFCmpOEQ(l_v, r_v, "eq") : builder.CreateICmpEQ(l_v, r_v, "eq"); 
         case NE:
@@ -141,6 +143,10 @@ class BinOpNode : public ExprNode
         default:
           throw SemanticError(op, "invalid binary operator '" + op.lexeme + "'");
       }
+    };
+    virtual TOKEN getTok() override
+    {
+      return op;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -179,6 +185,10 @@ class AssignNode : public ExprNode
 
       // Return the value.
       return value;
+    };
+    virtual TOKEN getTok() override
+    {
+      return id;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -325,9 +335,12 @@ class ReturnStmtNode : public StmtNode
       // Determine the return type.
       Type* type = value ? value->getType() : getTypeLL(VOID_TOK);
 
+      type->print(outs());
+      function->getReturnType()->print(outs());
+
       // Typecheck the return type.
       if (type != function->getReturnType())
-        throw SemanticError("incorrect return type");
+        throw SemanticError(e->getTok(), "incorrect return type");
 
       // Emit the return instruction.
       builder.CreateRet(value); 
@@ -365,13 +378,14 @@ class IfStmtNode : public StmtNode
       // Cast the value to a boolean.
       cond_v = boolCastLL(cond_v);
 
+
       // Create blocks.
       BasicBlock* then_bb = BasicBlock::Create(context, "then", function);
       BasicBlock* else_bb = else_ ? BasicBlock::Create(context, "else", function) : nullptr;
       BasicBlock* join_bb = BasicBlock::Create(context, "join", function);
 
       // Create conditional branch
-      builder.CreateCondBr(cond_v, then_bb, else_bb ? else_bb : join_bb);
+      builder.CreateCondBr(cond_v, then_bb, else_ ? else_bb : join_bb);
 
       // Emit the then block.
       builder.SetInsertPoint(then_bb);
@@ -386,7 +400,7 @@ class IfStmtNode : public StmtNode
         builder.CreateBr(join_bb);
       }
 
-      // Emit the join block.
+      // Set the insersion point to after the if construct.
       builder.SetInsertPoint(join_bb);
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -440,7 +454,7 @@ class WhileStmtNode : public StmtNode
       loop->codegen(symbols);
       builder.CreateBr(loop_bb);
 
-      // Set the insertion point after the loop.
+      // Set the insersion point to after the while construct.
       builder.SetInsertPoint(join_bb);
     };
     virtual std::string to_string(std::string indent = "") const override
@@ -497,7 +511,7 @@ class FunSignNode : public Node
       FunctionType* ft = FunctionType::get(returnType, argTypes, false);
       Function* function = Function::Create(ft, Function::ExternalLinkage, id.lexeme, module.get());
 
-      // Set names for all arguments
+      // Set the name for all the arguments.
       unsigned i = 0;
       for (auto& arg : function->args())
       {
@@ -536,13 +550,14 @@ class FunDeclNode : public DeclNode
     {}
     virtual void codegen() override
     {
-      // First, check for an existing function from a previous 'extern' declaration.
+      // Search for a declared extern prototpye.
       Function* function = module->getFunction(sign->getName());
 
-      // 
+      // Codegen the signature if there is no prototype.
       if (!function)
         function = sign->codegen();
 
+      // Check the function body has not already been defined.
       if (!function->empty())
         throw SemanticError(sign->getId(), "duplicate definition of function '" + sign->getId().lexeme + "'");
 
@@ -647,6 +662,10 @@ class UnaryNode : public ExprNode
           throw SemanticError(op, "invalid unary operator '" + op.lexeme + "'");
       }
     };
+    virtual TOKEN getTok() override
+    {
+      return op;
+    };
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<unary>" + op.lexeme + "\n" + expr->to_string(indent + "  ");
@@ -672,6 +691,10 @@ class VariableNode : public ExprNode
 
       // Emit the load instruction.
       return builder.CreateLoad(value, id.lexeme.c_str());
+    };
+    virtual TOKEN getTok() override
+    {
+      return id;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -719,6 +742,10 @@ class CallNode : public ExprNode
       // Emit the call instruction.
       return builder.CreateCall(function, args_v, "call");
     };
+    virtual TOKEN getTok() override
+    {
+      return id;
+    };
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str =  indent + "<call> " + id.lexeme + "\n";
@@ -733,59 +760,62 @@ class CallNode : public ExprNode
 class FloatNode : public ExprNode 
 {
   private:
-    float value;
+    TOKEN tok;
 
   public:
-    FloatNode(TOKEN tok)
-    {
-      value = std::stof(tok.lexeme); 
-    }
+    FloatNode(TOKEN tok) : tok(tok) {}
     virtual Value* codegen(SymbolTable& symbols) override
     {
-      return getFloatLL(value);
+      return getFloatLL(std::stof(tok.lexeme));
+    };
+    virtual TOKEN getTok() override
+    {
+      return tok;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<float> " + std::to_string(value) + "\n";
+      return indent + "<float> " + tok.lexeme + "\n";
     };
 };
 
 class IntNode : public ExprNode 
 {
   private:
-    int value;
+    TOKEN tok;
 
   public:
-    IntNode(TOKEN tok)
+    IntNode(TOKEN tok) : tok(tok) {}
+    virtual TOKEN getTok() override
     {
-      value = std::stoi(tok.lexeme); 
-    }
+      return tok;
+    };
     virtual Value* codegen(SymbolTable& symbols) override
     {
-      return getIntLL(value);
+      return getIntLL(std::stoi(tok.lexeme));
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<int> " + std::to_string(value) + "\n";
+      return indent + "<int> " + tok.lexeme + "\n";
     };
 };
 
 class BoolNode : public ExprNode 
 {
   private:
-    bool value;
+    TOKEN tok;
 
   public:
-    BoolNode(TOKEN tok)
+    BoolNode(TOKEN tok) : tok(tok) {}
+    virtual TOKEN getTok() override
     {
-      value = tok.lexeme == "true";
-    }
+      return tok;
+    };
     virtual Value* codegen(SymbolTable& symbols) override
     {
-      return getBoolLL(value);
+      return getBoolLL(tok.lexeme == "true");
     };
     virtual std::string to_string(std::string indent = "") const override
     {
-      return indent + "<bool> " + std::to_string(value) + "\n";
+      return indent + "<bool> " + tok.lexeme + "\n";
     };
 };

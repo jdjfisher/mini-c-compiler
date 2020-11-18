@@ -32,7 +32,6 @@ class SemanticError: public std::exception
     TOKEN tok;
 
   public:
-    SemanticError(std::string message) : message(message) {}
     SemanticError(TOKEN tok, std::string message) : tok(tok), message(message) {}
     std::string getMessage() const
     {
