@@ -351,6 +351,7 @@ static std::unique_ptr<IfStmtNode> parseIfStmt()
 static std::unique_ptr<ReturnStmtNode> parseReturnStmt() 
 {
   if (CurTok.type != RETURN) throw SyntaxError(CurTok, "return keyword");
+  TOKEN t = CurTok;
   // Consume the RETURN token.
   getNextToken();
 
@@ -359,7 +360,7 @@ static std::unique_ptr<ReturnStmtNode> parseReturnStmt()
     // Consume the ; token.
     getNextToken();
 
-    return std::make_unique<ReturnStmtNode>();
+    return std::make_unique<ReturnStmtNode>(t);
   }
 
   auto e = parseExpr();
@@ -368,7 +369,7 @@ static std::unique_ptr<ReturnStmtNode> parseReturnStmt()
   // Consume the ; token.
   getNextToken();
 
-  return std::make_unique<ReturnStmtNode>(std::move(e));
+  return std::make_unique<ReturnStmtNode>(t, std::move(e));
 }
 
 static std::unique_ptr<ExprStmtNode> parseExprStmt() 

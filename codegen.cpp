@@ -63,16 +63,39 @@ Constant* getTypeDefaultLL(int type)
   }
 }
 
+bool isBoolLL(Type* type)
+{
+  return type == getTypeLL(BOOL_TOK);
+}
+
 bool isBoolLL(Value* value)
 {
-  // Determine whether the value is a boolean
-  return value->getType() == getTypeLL(BOOL_TOK);
+  return isBoolLL(value->getType());
+}
+
+bool isIntLL(Type* type)
+{
+  return type == getTypeLL(INT_TOK);
+}
+
+bool isIntLL(Value* value)
+{
+  return isIntLL(value->getType());
+}
+
+bool isFloatLL(Type* type)
+{
+  return type == getTypeLL(FLOAT_TOK);
 }
 
 bool isFloatLL(Value* value)
 {
-  // Determine whether the value is floating point
-  return value->getType() == getTypeLL(FLOAT_TOK);
+  return isFloatLL(value->getType());
+}
+
+bool isVoidLL(Type* type)
+{
+  return type == getTypeLL(VOID_TOK);
 }
 
 Value* boolCastLL(Value* value)
@@ -84,5 +107,21 @@ Value* boolCastLL(Value* value)
 
 Value* floatCastLL(Value* value)
 {
-  return builder.CreateCast(Instruction::SIToFP, value, getTypeLL(FLOAT_TOK), "cast");
+  return isFloatLL(value) ? 
+    value : builder.CreateCast(Instruction::SIToFP, value, getTypeLL(FLOAT_TOK), "cast");
+}
+
+// Determines whether t1 is a wider type than t2.
+bool isWiderLL(Type* t1, Type* t2)
+{
+  // t1 is the widest type but t2 is not.
+  if (isFloatLL(t1) && !isFloatLL(t2))
+    return true;
+  
+  // t1 is the second-widest type but t2 is not.
+  if (isIntLL(t1) && !isFloatLL(t2) && !isIntLL(t2))
+    return true;
+  
+  // t1 cannot be wider.
+  return false;
 }

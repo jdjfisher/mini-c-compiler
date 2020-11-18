@@ -70,7 +70,6 @@ class ExprNode : public Node
 {
   public:
     virtual Value* codegen(SymbolTable& symbols) = 0;
-    virtual TOKEN getTok() = 0;
 };
 
 class BinOpNode : public ExprNode 
@@ -144,10 +143,6 @@ class BinOpNode : public ExprNode
           throw SemanticError(op, "invalid binary operator '" + op.lexeme + "'");
       }
     };
-    virtual TOKEN getTok() override
-    {
-      return op;
-    };
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<bin_op> " + op.lexeme + "\n"
@@ -177,18 +172,15 @@ class AssignNode : public ExprNode
       if (!variable) 
         throw SemanticError(id, "undefined variable '" + id.lexeme + "'");
 
-      // if (value->getType() != variable->getType())
-      //   throw SemanticError(id, "incorrect type assigned to '" + id.lexeme + "'");
+      // Typecheck.
+      if (isWiderLL(value->getType(), variable->getType()->getPointerElementType()))
+        throw SemanticError(id, "cannot assign wider type to '" + id.lexeme + "'");
 
       // Emit the store instruction.
       builder.CreateStore(value, variable);
 
       // Return the value.
       return value;
-    };
-    virtual TOKEN getTok() override
-    {
-      return id;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -321,26 +313,29 @@ class ExprStmtNode : public StmtNode
 class ReturnStmtNode : public StmtNode 
 {
   private:
+    TOKEN tok;
     std::unique_ptr<ExprNode> e;
 
   public:
-    ReturnStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
+    ReturnStmtNode(TOKEN tok, std::unique_ptr<ExprNode> e = nullptr) : tok(tok), e(std::move(e)) {}
     virtual void codegen(SymbolTable& symbols) override
     {
       Function* function = builder.GetInsertBlock()->getParent();
 
+      // Enforce no return value in void functions.
+      if (isVoidLL(function->getReturnType()) && e)
+        throw SemanticError(tok, "cannot return a value from a void function");
+
+      // Enforce a return value in non-void functions.
+      if (!isVoidLL(function->getReturnType()) && !e)
+        throw SemanticError(tok, "must return a value in non-void function");
+
       // Codegen the return value.
       Value* value = e ? e->codegen(symbols) : nullptr /* void */;
 
-      // Determine the return type.
-      Type* type = value ? value->getType() : getTypeLL(VOID_TOK);
-
-      type->print(outs());
-      function->getReturnType()->print(outs());
-
-      // Typecheck the return type.
-      if (type != function->getReturnType())
-        throw SemanticError(e->getTok(), "incorrect return type");
+      // If there is a return type, check the return value type.
+      if (value && isWiderLL(value->getType(), function->getReturnType()))
+        throw SemanticError(tok, "cannot return wider type");
 
       // Emit the return instruction.
       builder.CreateRet(value); 
@@ -662,10 +657,6 @@ class UnaryNode : public ExprNode
           throw SemanticError(op, "invalid unary operator '" + op.lexeme + "'");
       }
     };
-    virtual TOKEN getTok() override
-    {
-      return op;
-    };
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<unary>" + op.lexeme + "\n" + expr->to_string(indent + "  ");
@@ -691,10 +682,6 @@ class VariableNode : public ExprNode
 
       // Emit the load instruction.
       return builder.CreateLoad(value, id.lexeme.c_str());
-    };
-    virtual TOKEN getTok() override
-    {
-      return id;
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -742,10 +729,6 @@ class CallNode : public ExprNode
       // Emit the call instruction.
       return builder.CreateCall(function, args_v, "call");
     };
-    virtual TOKEN getTok() override
-    {
-      return id;
-    };
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str =  indent + "<call> " + id.lexeme + "\n";
@@ -768,10 +751,6 @@ class FloatNode : public ExprNode
     {
       return getFloatLL(std::stof(tok.lexeme));
     };
-    virtual TOKEN getTok() override
-    {
-      return tok;
-    };
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<float> " + tok.lexeme + "\n";
@@ -785,10 +764,6 @@ class IntNode : public ExprNode
 
   public:
     IntNode(TOKEN tok) : tok(tok) {}
-    virtual TOKEN getTok() override
-    {
-      return tok;
-    };
     virtual Value* codegen(SymbolTable& symbols) override
     {
       return getIntLL(std::stoi(tok.lexeme));
@@ -806,10 +781,6 @@ class BoolNode : public ExprNode
 
   public:
     BoolNode(TOKEN tok) : tok(tok) {}
-    virtual TOKEN getTok() override
-    {
-      return tok;
-    };
     virtual Value* codegen(SymbolTable& symbols) override
     {
       return getBoolLL(tok.lexeme == "true");
