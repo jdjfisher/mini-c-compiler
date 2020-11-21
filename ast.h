@@ -46,9 +46,6 @@
 // Namespaces
 using namespace llvm;
 
-// Aliases
-using SymbolTable = std::map<std::string, AllocaInst*>;
-
 
 extern LLVMContext context;
 extern IRBuilder<> builder;
@@ -69,7 +66,7 @@ class Node
 class ExprNode : public Node 
 {
   public:
-    virtual Value* codegen(SymbolTable& symbols) = 0;
+    virtual Value* codegen(Scopes& symbols) = 0;
 };
 
 class BinOpNode : public ExprNode 
@@ -84,7 +81,7 @@ class BinOpNode : public ExprNode
       std::unique_ptr<ExprNode> left, std::unique_ptr<ExprNode> right, TOKEN op
     ) : left(std::move(left)), right(std::move(right)), op(op)
     {}
-    virtual Value* codegen(SymbolTable& symbols) override;
+    virtual Value* codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<bin_op> " + op.lexeme + "\n"
@@ -100,7 +97,7 @@ class AssignNode : public ExprNode
 
   public:
     AssignNode(TOKEN id, std::unique_ptr<ExprNode> e) : id(id), e(std::move(e)) {}
-    virtual Value* codegen(SymbolTable& symbols) override;
+    virtual Value* codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<assign> " + id.lexeme + "\n" + e->to_string(indent + "  ");
@@ -122,7 +119,7 @@ class VarDeclNode : public DeclNode
   public:
     VarDeclNode(TOKEN type, TOKEN id) : type(type), id(id) {}
     virtual void codegen() override;
-    void codegen(SymbolTable& symbols);
+    void codegen(Scopes& symbols);
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<var_decl> " + type.lexeme + " " + id.lexeme + "\n";
@@ -132,7 +129,7 @@ class VarDeclNode : public DeclNode
 class StmtNode : public Node
 {
   public:
-    virtual void codegen(std::map<std::string, AllocaInst *> &symbols) = 0;
+    virtual void codegen(Scopes& symbols) = 0;
 };
 
 class BlockStmtNode : public StmtNode 
@@ -147,14 +144,7 @@ class BlockStmtNode : public StmtNode
       std::vector<std::unique_ptr<StmtNode>> stmts
     ) : decls(std::move(decls)), stmts(std::move(stmts))
     {}
-    virtual void codegen(SymbolTable& symbols) override
-    {
-      for (const auto& d : decls)
-        d->codegen(symbols);
-
-      for (const auto& s : stmts)
-        s->codegen(symbols);
-    };
+    virtual void codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<block_stmt>\n";
@@ -176,9 +166,10 @@ class ExprStmtNode : public StmtNode
 
   public:
     ExprStmtNode(std::unique_ptr<ExprNode> e = nullptr) : e(std::move(e)) {}
-    virtual void codegen(SymbolTable& symbols) override
+    virtual void codegen(Scopes& symbols) override
     {
-      e->codegen(symbols);
+      if (e)
+        e->codegen(symbols);
     };
     virtual std::string to_string(std::string indent = "") const override
     {
@@ -196,7 +187,7 @@ class ReturnStmtNode : public StmtNode
 
   public:
     ReturnStmtNode(TOKEN tok, std::unique_ptr<ExprNode> e = nullptr) : tok(tok), e(std::move(e)) {}
-    virtual void codegen(SymbolTable& symbols) override;
+    virtual void codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<return_stmt>\n";
@@ -219,7 +210,7 @@ class IfStmtNode : public StmtNode
       std::unique_ptr<BlockStmtNode> else_
     ) : cond(std::move(cond)), then(std::move(then)), else_(std::move(else_)) 
     {}
-    virtual void codegen(SymbolTable& symbols) override;
+    virtual void codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<if_stmt>\n";
@@ -242,7 +233,7 @@ class WhileStmtNode : public StmtNode
       std::unique_ptr<StmtNode> loop
     ) : cond(std::move(cond)), loop(std::move(loop)) 
     {}
-    virtual void codegen(SymbolTable& symbols) override;
+    virtual void codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str = indent + "<while_stmt>\n";
@@ -369,7 +360,7 @@ class UnaryNode : public ExprNode
       std::unique_ptr<ExprNode> expr
     ) : op(op), expr(std::move(expr)) 
     {}
-    virtual Value* codegen(SymbolTable& symbols) override;
+    virtual Value* codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<unary>" + op.lexeme + "\n" + expr->to_string(indent + "  ");
@@ -383,7 +374,7 @@ class VariableNode : public ExprNode
 
   public:
     VariableNode(TOKEN id): id(id) {}
-    virtual Value* codegen(SymbolTable& symbols) override;
+    virtual Value* codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       return indent + "<variable> " + id.lexeme + "\n";
@@ -402,7 +393,7 @@ class CallNode : public ExprNode
       std::vector<std::unique_ptr<ExprNode>> args
     ) : id(id), args(std::move(args)) 
     {}
-    virtual Value* codegen(SymbolTable& symbols) override;
+    virtual Value* codegen(Scopes& symbols) override;
     virtual std::string to_string(std::string indent = "") const override
     {
       std::string str =  indent + "<call> " + id.lexeme + "\n";
@@ -421,7 +412,7 @@ class FloatNode : public ExprNode
 
   public:
     FloatNode(TOKEN tok) : tok(tok) {}
-    virtual Value* codegen(SymbolTable& symbols) override
+    virtual Value* codegen(Scopes& symbols) override
     {
       return getFloatLL(std::stof(tok.lexeme));
     };
@@ -438,7 +429,7 @@ class IntNode : public ExprNode
 
   public:
     IntNode(TOKEN tok) : tok(tok) {}
-    virtual Value* codegen(SymbolTable& symbols) override
+    virtual Value* codegen(Scopes& symbols) override
     {
       return getIntLL(std::stoi(tok.lexeme));
     };
@@ -455,7 +446,7 @@ class BoolNode : public ExprNode
 
   public:
     BoolNode(TOKEN tok) : tok(tok) {}
-    virtual Value* codegen(SymbolTable& symbols) override
+    virtual Value* codegen(Scopes& symbols) override
     {
       return getBoolLL(tok.lexeme == "true");
     };

@@ -24,6 +24,10 @@
 // Namespaces
 using namespace llvm;
 
+// Aliases
+using Scope = std::map<std::string, AllocaInst*>;
+using Scopes = std::deque<Scope>;
+
 
 class SemanticError: public std::exception
 {

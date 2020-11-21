@@ -4,7 +4,11 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Type.h"
 
+// Standard library imports
+#include <deque>
+
 // Application imports
+#include "codegen.h"
 #include "lexer.h"
 #include "ast.h"
 
@@ -127,7 +131,22 @@ bool isWiderLL(Type* t1, Type* t2)
   return false;
 }
 
-Value* BinOpNode::codegen(SymbolTable& symbols)
+// Searches all level the scope stack for the given symbol.
+Value* findSymbol(Scopes& symbols, std::string name)
+{
+  // Iterate over scopes of increasing depth.
+  for (auto& scope : symbols)
+  {
+    // Try find the symbol in the scope.
+    auto symbol = scope[name];
+    if (symbol)
+      return symbol;
+  }
+
+  return nullptr;
+}
+
+Value* BinOpNode::codegen(Scopes& symbols)
 {
   // Codegen the operands.
   Value* l_v = left->codegen(symbols);
@@ -187,14 +206,14 @@ Value* BinOpNode::codegen(SymbolTable& symbols)
   }
 };
 
-Value* AssignNode::codegen(SymbolTable& symbols)
+Value* AssignNode::codegen(Scopes& symbols)
 {
   // Codegen the value.
   Value* value = e->codegen(symbols);
   assert(value);
 
   // Try find the variable in the scope else check the global table.
-  Value* variable = symbols[id.lexeme];
+  Value* variable = findSymbol(symbols, id.lexeme);
   if (!variable) 
     variable = module->getNamedGlobal(id.lexeme); 
 
@@ -234,10 +253,10 @@ void VarDeclNode::codegen()
   assert(global);
 }
 
-void VarDeclNode::codegen(SymbolTable& symbols)
+void VarDeclNode::codegen(Scopes& symbols)
 {
   // Check that a variable with the name has not already been declared.
-  if (symbols[id.lexeme])
+  if (symbols.front()[id.lexeme])
     throw SemanticError(id, "redeclaration of '" + id.lexeme + "'");
 
   // Create an alloca for this variable.
@@ -254,10 +273,26 @@ void VarDeclNode::codegen(SymbolTable& symbols)
   builder.CreateStore(init, alloc);
 
   // Add the alloca to the symbol table.
-  symbols[id.lexeme] = alloc;
+  symbols.front()[id.lexeme] = alloc;
 };
 
-void ReturnStmtNode::codegen(SymbolTable& symbols)
+void BlockStmtNode::codegen(Scopes& symbols)
+{
+  // Push a new scope level.
+  Scope scope;
+  symbols.push_front(scope);
+
+  // Generate the block.
+  for (const auto& d : decls)
+    d->codegen(symbols);
+  for (const auto& s : stmts)
+    s->codegen(symbols);
+
+  // Pop the same scope level.
+  symbols.pop_front();
+};
+
+void ReturnStmtNode::codegen(Scopes& symbols)
 {
   Function* function = builder.GetInsertBlock()->getParent();
 
@@ -280,7 +315,7 @@ void ReturnStmtNode::codegen(SymbolTable& symbols)
   builder.CreateRet(value); 
 };
 
-void IfStmtNode::codegen(SymbolTable& symbols)
+void IfStmtNode::codegen(Scopes& symbols)
 {
   Function* function = builder.GetInsertBlock()->getParent();
 
@@ -302,14 +337,20 @@ void IfStmtNode::codegen(SymbolTable& symbols)
 
   // Emit the then block.
   builder.SetInsertPoint(then_bb);
+  Scope scope;
+  symbols.push_front(scope);
   then->codegen(symbols);
+  symbols.pop_front();
   builder.CreateBr(join_bb);
 
   // Emit the else block.
   if (else_)
   {
     builder.SetInsertPoint(else_bb);
+    Scope scope;
+    symbols.push_front(scope);
     else_->codegen(symbols);
+    symbols.pop_front();
     builder.CreateBr(join_bb);
   }
 
@@ -317,7 +358,7 @@ void IfStmtNode::codegen(SymbolTable& symbols)
   builder.SetInsertPoint(join_bb);
 };
 
-void WhileStmtNode::codegen(SymbolTable& symbols)
+void WhileStmtNode::codegen(Scopes& symbols)
 {
   // Make the new basic block for the loop header, inserting after current block.
   Function* function = builder.GetInsertBlock()->getParent();
@@ -343,7 +384,10 @@ void WhileStmtNode::codegen(SymbolTable& symbols)
 
   // Codegen the loop body.
   builder.SetInsertPoint(body_bb);
+  Scope scope;
+  symbols.push_front(scope);
   loop->codegen(symbols);
+  symbols.pop_front();
   builder.CreateBr(loop_bb);
 
   // Set the insersion point to after the while construct.
@@ -391,8 +435,8 @@ void FunDeclNode::codegen()
   BasicBlock* body_bb = BasicBlock::Create(context, "body_bb", function);
   builder.SetInsertPoint(body_bb);
 
-  // Record the function arguments in the map.
-  SymbolTable symbols;
+  // Create a new scope and record the function arguments.
+  Scope scope;
   
   for (auto& arg : function->args())
   {
@@ -405,14 +449,18 @@ void FunDeclNode::codegen()
     builder.CreateStore(&arg, alloc);
 
     // Add arguments to variable symbol table.
-    symbols[arg.getName().str()] = alloc;
+    scope[arg.getName().str()] = alloc;
   }
+
+  // Push the function root scope;
+  Scopes symbols;
+  symbols.push_front(scope);
 
   // Codegen the body of the function.
   body->codegen(symbols);
 };
 
-Value* UnaryNode::codegen(SymbolTable& symbols)
+Value* UnaryNode::codegen(Scopes& symbols)
 {
   // Codegen the expression value.
   Value* value = expr->codegen(symbols);
@@ -438,10 +486,10 @@ Value* UnaryNode::codegen(SymbolTable& symbols)
   }
 };
 
-Value* VariableNode::codegen(SymbolTable& symbols)
+Value* VariableNode::codegen(Scopes& symbols)
 {
   // Look this variable up.
-  Value *value = symbols[id.lexeme];
+  Value *value = findSymbol(symbols, id.lexeme);
   if (!value) 
     value = module->getNamedGlobal(id.lexeme); 
 
@@ -452,7 +500,7 @@ Value* VariableNode::codegen(SymbolTable& symbols)
   return builder.CreateLoad(value, id.lexeme.c_str());
 };
 
-Value* CallNode::codegen(SymbolTable& symbols)
+Value* CallNode::codegen(Scopes& symbols)
 {
   // Lookup the function in the global module table.
   Function *function = module->getFunction(id.lexeme);
