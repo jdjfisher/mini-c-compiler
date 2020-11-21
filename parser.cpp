@@ -236,8 +236,8 @@ static std::vector<std::unique_ptr<StmtNode>> parseStmtList()
       case IF:
       case WHILE:
       case RETURN:
-      case SC:     // FIRST(<expr_stmt>)
-      case IDENT:  // FIRST(<expr>)
+      case SC:
+      case IDENT:
       case MINUS:
       case NOT:
       case INT_LIT:
@@ -267,7 +267,7 @@ static std::unique_ptr<StmtNode> parseStmt()
       return parseWhileStmt();
     case RETURN:
       return parseReturnStmt();
-    case IDENT: // FIRST(expr)
+    case IDENT:
     case MINUS:
     case NOT:
     case INT_LIT:
