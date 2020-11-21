@@ -337,20 +337,14 @@ void IfStmtNode::codegen(Scopes& symbols)
 
   // Emit the then block.
   builder.SetInsertPoint(then_bb);
-  Scope scope;
-  symbols.push_front(scope);
   then->codegen(symbols);
-  symbols.pop_front();
   builder.CreateBr(join_bb);
 
   // Emit the else block.
   if (else_)
   {
     builder.SetInsertPoint(else_bb);
-    Scope scope;
-    symbols.push_front(scope);
     else_->codegen(symbols);
-    symbols.pop_front();
     builder.CreateBr(join_bb);
   }
 
@@ -384,10 +378,7 @@ void WhileStmtNode::codegen(Scopes& symbols)
 
   // Codegen the loop body.
   builder.SetInsertPoint(body_bb);
-  Scope scope;
-  symbols.push_front(scope);
   loop->codegen(symbols);
-  symbols.pop_front();
   builder.CreateBr(loop_bb);
 
   // Set the insersion point to after the while construct.
